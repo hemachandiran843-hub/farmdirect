@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+{% block title %}Register{% endblock %}
+{% block content %}
+<div class="fd-auth-wrap">
+  <div class="fd-card p-4 p-md-5">
+    <div class="text-center mb-4">
+      <div style="font-size:2.4rem">🌾</div>
+      <h3 class="fw-bold mb-1">Join FarmDirect</h3>
+      <p class="fd-subtle">One account — pick your role below</p>
+    </div>
+    <form method="post">
+      <div class="row g-2 mb-3" id="role-picker">
+        {% for role, icon, label in [('farmer','🌻','Farmer'),('fpo','👥','FPO / Co-op'),('consumer','🛒','Consumer'),('buyer','🏪','Bulk Buyer')] %}
+        <div class="col-3">
+          <input type="radio" class="btn-check" name="role" id="role-{{ role }}" value="{{ role }}"
+                 {% if loop.first %}checked{% endif %} onchange="toggleRoleFields()">
+          <label class="btn btn-fd-outline w-100 py-2" for="role-{{ role }}" style="font-size:.8rem">
+            <div style="font-size:1.3rem">{{ icon }}</div>{{ label }}
+          </label>
+        </div>
+        {% endfor %}
+      </div>
+
+      <div class="row">
+        <div class="col-12 mb-3">
+          <label class="form-label">Full name</label>
+          <input class="form-control" name="name" placeholder="e.g. Ramesh Patil" required>
+        </div>
+        <div class="col-md-6 mb-3">
+          <label class="form-label">Email</label>
+          <input type="email" class="form-control" name="email" placeholder="you@example.in" required>
+        </div>
+        <div class="col-md-6 mb-3">
+          <label class="form-label">Phone</label>
+          <input class="form-control" name="phone" placeholder="98XXXXXXXX">
+        </div>
+        <div class="col-md-6 mb-3">
+          <label class="form-label">City / District</label>
+          <input class="form-control" name="city" value="Nashik" required>
+        </div>
+        <div class="col-md-6 mb-3">
+          <label class="form-label">State</label>
+          <input class="form-control" name="state" value="Maharashtra">
+        </div>
+        <div class="col-md-6 mb-3">
+          <label class="form-label">Password</label>
+          <input type="password" class="form-control" name="password" minlength="4" placeholder="min 4 chars" required>
+        </div>
+      </div>
+
+      <!-- Farmer fields -->
+      <div id="fields-farmer" class="role-fields d-none">
+        <div class="fd-divider"></div>
+        <h6 class="fw-bold">🌾 Farm details</h6>
+        <div class="row">
+          <div class="col-md-6 mb-3">
+            <label class="form-label">Farm name</label>
+            <input class="form-control" name="farm_name" placeholder="e.g. Patil Fresh Farms">
+          </div>
+          <div class="col-md-6 mb-3">
+            <label class="form-label">Farm size (acres)</label>
+            <input type="number" step="0.1" min="0.1" class="form-control" name="farm_size" value="2.0">
+          </div>
+          <div class="col-12 mb-2">
+            <label class="form-label">Crops you grow</label>
+            <input class="form-control" name="crops_grown" placeholder="e.g. Tomato, Onion, Wheat">
+          </div>
+        </div>
+      </div>
+
+      <!-- FPO fields -->
+      <div id="fields-fpo" class="role-fields d-none">
+        <div class="fd-divider"></div>
+        <h6 class="fw-bold">👥 FPO details</h6>
+        <div class="row">
+          <div class="col-md-6 mb-3">
+            <label class="form-label">FPO name</label>
+            <input class="form-control" name="fpo_name" placeholder="e.g. Vidarbha Farmers FPO">
+          </div>
+          <div class="col-md-6 mb-3">
+            <label class="form-label">Member count</label>
+            <input type="number" min="1" class="form-control" name="member_count" value="25">
+          </div>
+        </div>
+      </div>
+
+      <button class="btn btn-fd w-100 py-2 mt-3"><i class="bi bi-person-plus me-1"></i> Create account</button>
+    </form>
+    <p class="text-center fd-subtle mt-3 mb-0">Already registered? <a href="{{ url_for('auth.login') }}"><b>Log in</b></a></p>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+function toggleRoleFields() {
+  const role = document.querySelector('input[name=role]:checked').value;
+  document.querySelectorAll('.role-fields').forEach(el => el.classList.add('d-none'));
+  const el = document.getElementById('fields-' + role);
+  if (el) el.classList.remove('d-none');
+}
+toggleRoleFields();
+</script>
+{% endblock %}

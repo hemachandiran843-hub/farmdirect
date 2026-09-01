@@ -1,0 +1,220 @@
+{% extends "base.html" %}
+{% block title %}IVR Voice Simulator{% endblock %}
+{% block content %}
+<section class="container py-4">
+  <div class="d-flex justify-content-between align-items-end flex-wrap mb-3">
+    <div>
+      <h2 class="fd-section-title mb-0" style="font-size:1.5rem">📞 IVR Voice Simulator — உழவர் நேரடி</h2>
+      <span class="fd-subtle">Bilingual (தமிழ் / English) · DTMF + speech · uses the SAME backend as a real phone call</span>
+    </div>
+    <div class="d-flex gap-2">
+      <a href="{{ url_for('views.farmer_dashboard') }}" class="btn btn-fd-outline btn-sm"><i class="bi bi-speedometer2 me-1"></i>Farmer Dashboard</a>
+      <a href="{{ url_for('views.marketplace') }}" class="btn btn-fd-outline btn-sm"><i class="bi bi-shop me-1"></i>Marketplace</a>
+    </div>
+  </div>
+
+  <div class="row g-4">
+    <!-- ============= PHONE FRAME ============= -->
+    <div class="col-lg-5">
+      <div class="ivr-phone-wrap">
+        <div class="ivr-phone">
+          <div class="ivr-phone-notch"></div>
+          <div class="ivr-phone-screen">
+            <!-- call status bar -->
+            <div class="ivr-status-bar d-flex justify-content-between">
+              <span id="ivr-timer" class="ivr-timer">00:00</span>
+              <span class="ivr-provider" id="ivr-provider">SIM · MOCK</span>
+              <span class="ivr-signal"><i class="bi bi-reception-4"></i> <i class="bi bi-battery-full"></i></span>
+            </div>
+
+            <!-- caller info / greeting -->
+            <div class="ivr-call-info" id="ivr-call-info">
+              <div class="ivr-contact-name" id="ivr-contact-name">Uzhavar Direct</div>
+              <div class="ivr-contact-num" id="ivr-contact-num">+91 90000 00000 · incoming</div>
+              <div class="ivr-call-state" id="ivr-call-state">Ready to call</div>
+            </div>
+
+            <!-- transcript area -->
+            <div class="ivr-transcript" id="ivr-transcript">
+              <div class="ivr-empty">
+                <i class="bi bi-telephone-inbound"></i>
+                <p>Press the green button to start the call.<br>Choose a caller number on the right first.</p>
+              </div>
+            </div>
+
+            <!-- language selector -->
+            <div class="ivr-lang-row" id="ivr-lang-row" style="display:none">
+              <button class="ivr-lang-btn active" data-lang="ta">தமிழ்</button>
+              <button class="ivr-lang-btn" data-lang="en">English</button>
+            </div>
+
+            <!-- mic / keypad toggles -->
+            <div class="ivr-input-tabs" id="ivr-input-tabs" style="display:none">
+              <button class="active" data-mode="keypad"><i class="bi bi-grid-3x3-gap"></i> Keypad</button>
+              <button data-mode="voice"><i class="bi bi-mic"></i> Speak</button>
+              <button data-mode="text"><i class="bi bi-keyboard"></i> Text</button>
+            </div>
+
+            <!-- DTMF keypad -->
+            <div class="ivr-keypad" id="ivr-keypad" style="display:none">
+              <button class="ivr-key" data-d="1">1<div class="ivr-key-sub">𝅗𝅥</div></button>
+              <button class="ivr-key" data-d="2">2<div class="ivr-key-sub">ABC</div></button>
+              <button class="ivr-key" data-d="3">3<div class="ivr-key-sub">DEF</div></button>
+              <button class="ivr-key" data-d="4">4<div class="ivr-key-sub">GHI</div></button>
+              <button class="ivr-key" data-d="5">5<div class="ivr-key-sub">JKL</div></button>
+              <button class="ivr-key" data-d="6">6<div class="ivr-key-sub">MNO</div></button>
+              <button class="ivr-key" data-d="7">7<div class="ivr-key-sub">PQRS</div></button>
+              <button class="ivr-key" data-d="8">8<div class="ivr-key-sub">TUV</div></button>
+              <button class="ivr-key" data-d="9">9<div class="ivr-key-sub">WXYZ</div></button>
+              <button class="ivr-key" data-d="*">*</button>
+              <button class="ivr-key" data-d="0">0<div class="ivr-key-sub">+</div></button>
+              <button class="ivr-key" data-d="#">#</button>
+            </div>
+
+            <!-- voice input -->
+            <div class="ivr-voice-input" id="ivr-voice-input" style="display:none">
+              <button class="ivr-mic-btn" id="ivr-mic-btn"><i class="bi bi-mic-fill"></i></button>
+              <div class="ivr-mic-hint" id="ivr-mic-hint">Tap to speak (Tamil / English / Tanglish)</div>
+              <div class="ivr-mic-result" id="ivr-mic-result"></div>
+              <button class="ivr-send-btn" id="ivr-send-voice" disabled>Send</button>
+            </div>
+
+            <!-- text input -->
+            <div class="ivr-text-input" id="ivr-text-input" style="display:none">
+              <input type="text" id="ivr-text-field" class="form-control"
+                     placeholder="Type Tamil or English and press Enter">
+              <button class="btn btn-fd btn-sm" id="ivr-send-text">Send</button>
+            </div>
+
+            <!-- action buttons -->
+            <div class="ivr-actions" id="ivr-actions" style="display:none">
+              <button class="ivr-act-btn" id="ivr-repeat" title="Repeat"><i class="bi bi-arrow-repeat"></i></button>
+              <button class="ivr-act-btn" id="ivr-back" title="Back"><i class="bi bi-arrow-left"></i></button>
+              <button class="ivr-act-btn" id="ivr-main" title="Main menu"><i class="bi bi-house"></i></button>
+            </div>
+
+            <!-- hangup / call button -->
+            <div class="ivr-bottom-bar">
+              <button class="ivr-call-btn" id="ivr-call-btn"><i class="bi bi-telephone-fill"></i></button>
+              <button class="ivr-hangup-btn" id="ivr-hangup-btn" style="display:none"><i class="bi bi-telephone-x-fill"></i></button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============= SIDE PANEL ============= -->
+    <div class="col-lg-7">
+      <div class="fd-card p-3 mb-3">
+        <h6 class="fw-bold mb-2"><i class="bi bi-person-vcard me-1"></i> Caller identity</h6>
+        <p class="fd-subtle small mb-2">Pick a registered farmer phone number — IVR will authenticate the session against this number.</p>
+        <div class="row g-2">
+          {% for f in farmers %}
+          <div class="col-md-6">
+            <label class="ivr-caller-pick">
+              <input type="radio" name="caller_number" value="{{ f['phone'] }}"
+                     class="ivr-caller-radio"
+                     {% if loop.first %}checked{% endif %}>
+              <div class="ivr-caller-card">
+                <div class="ivr-caller-avatar">{{ f['name'][:1] }}</div>
+                <div>
+                  <div class="ivr-caller-name">{{ f['name'] }}</div>
+                  <div class="ivr-caller-phone">+91 {{ f['phone'][-10:] if f['phone'] else '' }} · {{ f['role']|upper }} · {{ f['city'] }}</div>
+                  {% if f['farm_name'] %}<div class="ivr-caller-farm">{{ f['farm_name'] }}</div>{% endif %}
+                </div>
+              </div>
+            </label>
+          </div>
+          {% endfor %}
+        </div>
+        <div class="mt-2 d-flex gap-2 align-items-center">
+          <span class="tiny-note">Or use a custom number:</span>
+          <input type="tel" id="ivr-custom-caller" class="form-control form-control-sm"
+                 style="max-width:200px" placeholder="+91 98765 43210">
+          <button class="btn btn-fd-outline btn-sm" id="ivr-use-custom">Use this</button>
+        </div>
+      </div>
+
+      <div class="fd-card p-3 mb-3" id="ivr-state-card" style="display:none">
+        <div class="d-flex justify-content-between align-items-center">
+          <h6 class="fw-bold mb-0"><i class="bi bi-diagram-3 me-1"></i> IVR session state</h6>
+          <span class="ivr-mode-pill" id="ivr-mode-pill">MOCK</span>
+        </div>
+        <div class="row g-2 mt-1 small">
+          <div class="col-6"><span class="fd-meta">Session token:</span> <code id="ivr-session-token">—</code></div>
+          <div class="col-6"><span class="fd-meta">Language:</span> <b id="ivr-session-lang">—</b></div>
+          <div class="col-6"><span class="fd-meta">Current menu:</span> <b id="ivr-session-menu">—</b></div>
+          <div class="col-6"><span class="fd-meta">Auth status:</span> <b id="ivr-session-auth">—</b></div>
+          <div class="col-6"><span class="fd-meta">Farmer:</span> <b id="ivr-session-farmer">—</b></div>
+          <div class="col-6"><span class="fd-meta">Failures:</span> <b id="ivr-session-fails">0</b></div>
+        </div>
+      </div>
+
+      <div class="fd-card p-3 mb-3" id="ivr-intent-card" style="display:none">
+        <h6 class="fw-bold mb-2"><i class="bi bi-cpu me-1"></i> AI-detected intent</h6>
+        <div class="ivr-intent-row">
+          <span class="ivr-intent-label">Intent</span>
+          <span class="ivr-intent-value" id="ivr-intent-name">—</span>
+          <span class="ivr-intent-conf" id="ivr-intent-conf">—</span>
+        </div>
+        <pre class="ivr-intent-json" id="ivr-intent-json">{}</pre>
+      </div>
+
+      <div class="fd-card p-3 mb-3" id="ivr-action-card" style="display:none">
+        <h6 class="fw-bold mb-2"><i class="bi bi-database-check me-1"></i> Backend action (real DB write)</h6>
+        <div class="ivr-action-row">
+          <span class="ivr-action-label">Service</span>
+          <span class="ivr-action-value" id="ivr-action-name">—</span>
+        </div>
+        <pre class="ivr-action-json" id="ivr-action-json">{}</pre>
+        <div class="tiny-note mt-1">This is the same backend used by the web app. Any listing created here appears in the marketplace instantly.</div>
+      </div>
+
+      <div class="fd-card p-3" id="ivr-quick-scripts">
+        <h6 class="fw-bold mb-2"><i class="bi bi-magic me-1"></i> Quick demo scripts (Tamil + English)</h6>
+        <div class="ivr-script-grid">
+          <button class="ivr-script-btn" data-script="list_tamil">
+            <span class="ivr-script-lang ta">தமிழ்</span>
+            <span class="ivr-script-title">List 100 kg tomato @ ₹38</span>
+            <span class="ivr-script-lines">"என்னிடம் 100 கிலோ தக்காளி இருக்கு" → "38" → "இன்று" → "2" → "1"</span>
+          </button>
+          <button class="ivr-script-btn" data-script="list_en">
+            <span class="ivr-script-lang en">EN</span>
+            <span class="ivr-script-title">List 200 kg onion @ ₹19</span>
+            <span class="ivr-script-lines">"I have 200 kilos of onion" → "19" → "today" → "2" → "1"</span>
+          </button>
+          <button class="ivr-script-btn" data-script="price_tamil">
+            <span class="ivr-script-lang ta">தமிழ்</span>
+            <span class="ivr-script-title">Ask tomato price</span>
+            <span class="ivr-script-lines">"இன்று தக்காளி விலை என்ன?"</span>
+          </button>
+          <button class="ivr-script-btn" data-script="order_tamil">
+            <span class="ivr-script-lang ta">தமிழ்</span>
+            <span class="ivr-script-title">Check my order</span>
+            <span class="ivr-script-lines">"என்னுடைய ஆர்டர் எங்கே?"</span>
+          </button>
+          <button class="ivr-script-btn" data-script="bulk_en">
+            <span class="ivr-script-lang en">EN</span>
+            <span class="ivr-script-title">Bulk order opportunity</span>
+            <span class="ivr-script-lines">"Are there any bulk orders?" → "1"</span>
+          </button>
+          <button class="ivr-script-btn" data-script="earn_tamil">
+            <span class="ivr-script-lang ta">தமிழ்</span>
+            <span class="ivr-script-title">My earnings</span>
+            <span class="ivr-script-lines">"எனக்கு எவ்வளவு பணம் வந்திருக்கு?"</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+  // Pass server-side data to the simulator JS
+  window.IVR_FARMERS = {{ farmers|tojson }};
+  window.IVR_SCRIPT_ROOT = "{{ request.script_root }}";
+</script>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/ivr.css') }}">
+<script src="{{ url_for('static', filename='js/ivr_simulator.js') }}"></script>
+{% endblock %}

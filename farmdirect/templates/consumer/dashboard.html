@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% block title %}Consumer Dashboard{% endblock %}
+{% block content %}
+<section class="container py-4">
+  <h2 class="fd-section-title mb-0" style="font-size:1.5rem">Hello, {{ g.user['name'].split(' ')[0] }} 🧺</h2>
+  <p class="fd-subtle">Fresh harvests, fair prices — all in one place</p>
+
+  <div class="row g-3 mb-1">
+    <div class="col-6 col-md-4">
+      <div class="fd-stat"><div class="d-flex justify-content-between"><span class="stat-label">Total orders</span><span class="stat-icon">📦</span></div><div class="stat-value">{{ totals['n_orders'] }}</div><div class="tiny-note">across {{ totals['n_orders'] }} purchases</div></div>
+    </div>
+    <div class="col-6 col-md-4">
+      <div class="fd-stat"><div class="d-flex justify-content-between"><span class="stat-label">Total spent</span><span class="stat-icon">💳</span></div><div class="stat-value">{{ totals['spent']|inr }}</div><div class="tiny-note">≈ {{ ((totals['spent'] or 0) * 0.22)|inr }} saved vs retail</div></div>
+    </div>
+    <div class="col-6 col-md-4">
+      <div class="fd-stat"><div class="d-flex justify-content-between"><span class="stat-label">Active orders</span><span class="stat-icon">🚚</span></div><div class="stat-value stat-amber">{{ active }}</div><div class="tiny-note">being delivered now</div></div>
+    </div>
+  </div>
+
+  <div class="row g-3 mt-2">
+    <div class="col-lg-7">
+      <div class="fd-card p-3 h-100">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <h6 class="fw-bold mb-0">Recent orders</h6>
+          <a href="{{ url_for('views.my_orders') }}" class="btn btn-link btn-sm">View all</a>
+        </div>
+        {% for o in orders %}
+        <div class="d-flex justify-content-between align-items-center border rounded-3 p-2 mb-2">
+          <div>
+            <b class="small">{{ o['order_code'] }}</b> · <span class="fd-meta">{{ o['n_items'] if o.n_items else '' }} items · {{ days_ago(o['created_at'][:10]) }}</span>
+            <div class="fd-meta">{{ o['delivery_city'] }} · {{ o['order_type']|title }}</div>
+          </div>
+          <div class="text-end">
+            <span class="badge-fd badge-status-{{ o['status'] }}">{{ pretty_status(o['status']) }}</span>
+            <div class="fw-bold small mt-1">₹{{ '%g'|format(o['total_amount']) }}</div>
+          </div>
+          <a href="{{ url_for('views.track_order', oid=o['id']) }}" class="btn btn-fd-outline btn-sm">Track</a>
+        </div>
+        {% else %}
+        <div class="text-center py-4"><div style="font-size:2rem">🛒</div><p class="fd-subtle mb-0">No orders yet — the marketplace awaits!</p></div>
+        {% endfor %}
+      </div>
+    </div>
+    <div class="col-lg-5">
+      <div class="fd-card p-3">
+        <h6 class="fw-bold mb-2">Picked for you</h6>
+        <div class="row g-2">
+          {% for p in picks %}
+          <div class="col-6">
+            <a class="d-flex align-items-center gap-2 text-decoration-none text-body border rounded-3 p-2" href="{{ url_for('views.product_detail', pid=p['id']) }}">
+              <div class="avatar-crop" style="background:var(--fd-green-light)">{{ CROP_META.get(p['crop'], {}).get('icon','🌾') }}</div>
+              <div class="small">
+                <b>{{ p['crop'] }}</b> · ₹{{ '%g'|format(p['price_per_kg']) }}/kg
+                <div class="fd-meta">{{ p['seller_name'] }} · {{ p['city'] }}</div>
+              </div>
+            </a>
+          </div>
+          {% endfor %}
+        </div>
+        <a href="{{ url_for('views.marketplace') }}" class="btn btn-fd w-100 mt-2">Browse full marketplace</a>
+      </div>
+      <div class="fd-card p-3 mt-3" style="background:var(--fd-green-soft)">
+        <h6 class="fw-bold small"><i class="bi bi-shield-check" style="color:var(--fd-green)"></i> Why prices are lower here</h6>
+        <p class="tiny-note mb-0">Your money goes: <b>Farmer → FarmDirect (6% + logistics) → You</b>. Traditional chains add intermediary, wholesaler and retailer markups of up to 85%. Every listing shows the farmer's name, farm location and harvest date.</p>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}

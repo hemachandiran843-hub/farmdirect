@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+{% block title %}Marketplace{% endblock %}
+{% block content %}
+<section class="container py-4">
+  <div class="row g-4">
+    <!-- Filters sidebar -->
+    <div class="col-lg-3">
+      <div class="fd-card p-3 mb-3">
+        <h6 class="fw-bold mb-3"><i class="bi bi-funnel me-1"></i> Filters</h6>
+        <form method="get">
+          <div class="mb-3">
+            <label class="form-label tiny-note fw-bold">SEARCH</label>
+            <input class="form-control" name="q" value="{{ filters.q }}" placeholder="Tomato, FPO name…">
+          </div>
+          <div class="mb-3">
+            <label class="form-label tiny-note fw-bold">CROP</label>
+            <select class="form-select" name="crop">
+              <option value="">All crops</option>
+              {% for c in crops %}<option value="{{ c }}" {% if filters.crop == c %}selected{% endif %}>{{ CROP_META.get(c, {}).get('icon', '🌾') }} {{ c }}</option>{% endfor %}
+            </select>
+          </div>
+          <div class="mb-3">
+            <label class="form-label tiny-note fw-bold">FARM LOCATION</label>
+            <select class="form-select" name="city">
+              <option value="">All locations</option>
+              {% for c in cities %}<option value="{{ c }}" {% if filters.city == c %}selected{% endif %}>{{ c }}</option>{% endfor %}
+            </select>
+          </div>
+          <div class="mb-3">
+            <label class="form-label tiny-note fw-bold">QUALITY GRADE</label>
+            <div class="d-flex gap-2">
+              {% for gr in ['A','B','C'] %}
+              <input type="radio" class="btn-check" name="grade" id="g{{ gr }}" value="{{ gr }}" {% if filters.grade == gr %}checked{% endif %}>
+              <label class="btn btn-fd-outline btn-sm flex-fill" for="g{{ gr }}">{{ gr }}</label>
+              {% endfor %}
+              <input type="radio" class="btn-check" name="grade" id="gall" value="" {% if not filters.grade %}checked{% endif %}>
+              <label class="btn btn-fd-outline btn-sm flex-fill" for="gall">Any</label>
+            </div>
+          </div>
+          <div class="mb-3">
+            <label class="form-label tiny-note fw-bold">MAX PRICE (₹/kg)</label>
+            <input type="number" class="form-control" name="max_price" value="{{ filters.max_price }}" placeholder="e.g. 40" min="1">
+          </div>
+          <div class="mb-3">
+            <label class="form-label tiny-note fw-bold">SORT BY</label>
+            <select class="form-select" name="sort">
+              <option value="recent" {% if filters.sort == 'recent' %}selected{% endif %}>Newest first</option>
+              <option value="price_asc" {% if filters.sort == 'price_asc' %}selected{% endif %}>Price: low → high</option>
+              <option value="price_desc" {% if filters.sort == 'price_desc' %}selected{% endif %}>Price: high → low</option>
+              <option value="qty" {% if filters.sort == 'qty' %}selected{% endif %}>Quantity available</option>
+            </select>
+          </div>
+          <button class="btn btn-fd w-100"><i class="bi bi-search me-1"></i> Apply filters</button>
+          <a href="{{ url_for('views.marketplace') }}" class="btn btn-link w-100 btn-sm mt-1">Reset</a>
+        </form>
+      </div>
+      {% if g.role in ('farmer','fpo') %}
+      <div class="fd-card p-3" style="background:var(--fd-green-soft)">
+        <h6 class="fw-bold mb-1">Selling something?</h6>
+        <p class="tiny-note mb-2">Publish a new listing in under 2 minutes.</p>
+        <a href="{{ url_for('views.add_listing') }}" class="btn btn-fd btn-sm w-100">+ Add Produce</a>
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- Results -->
+    <div class="col-lg-9">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+          <h2 class="fd-section-title mb-0">Fresh produce marketplace</h2>
+          <span class="fd-subtle">{{ products|length }} listings from verified farmers &amp; FPOs</span>
+        </div>
+        <input class="form-control" style="max-width:220px" placeholder="Quick filter…" oninput="quickFilter(this)">
+      </div>
+
+      {% if products %}
+      <div class="row g-3">
+        {% for p in products %}
+          {% include "partials/product_card.html" %}
+        {% endfor %}
+      </div>
+      {% else %}
+      <div class="fd-card p-5 text-center">
+        <div style="font-size:2.5rem">🔍</div>
+        <h5 class="fw-bold mt-2">No produce matches those filters</h5>
+        <p class="fd-subtle">Try widening your search — or check back after the next harvest.</p>
+        <a href="{{ url_for('views.marketplace') }}" class="btn btn-fd-outline">Clear filters</a>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</section>
+{% endblock %}

@@ -1,0 +1,132 @@
+{% extends "base.html" %}
+{% block title %}Farmer Earnings{% endblock %}
+{% block content %}
+<section class="container py-4">
+  <h2 class="fd-section-title" style="font-size:1.5rem">💰 Earnings dashboard</h2>
+  <p class="fd-subtle">Every accepted order, payment and rupee you saved by selling direct</p>
+
+  <div class="row g-3 mb-1">
+    <div class="col-6 col-md-3">
+      <div class="fd-stat"><div class="d-flex justify-content-between"><span class="stat-label">Total sales</span><span class="stat-icon">🧾</span></div><div class="stat-value">{{ kpi['total_sales']|inr }}</div><div class="tiny-note">{{ kpi['n_orders'] }} accepted items</div></div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="fd-stat"><div class="d-flex justify-content-between"><span class="stat-label">Money received</span><span class="stat-icon">✅</span></div><div class="stat-value">{{ paid|inr }}</div><div class="tiny-note">settled payments</div></div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="fd-stat"><div class="d-flex justify-content-between"><span class="stat-label">Pending payments</span><span class="stat-icon">⏳</span></div><div class="stat-value stat-amber">{{ pending|inr }}</div><div class="tiny-note">in-transit orders</div></div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="fd-stat"><div class="d-flex justify-content-between"><span class="stat-label">Avg selling price</span><span class="stat-icon">📈</span></div><div class="stat-value">₹{{ '%.1f'|format(avg_price or 0) }}</div><div class="tiny-note">per kg across all sales</div></div>
+    </div>
+  </div>
+
+  <div class="row g-3 mt-2">
+    <div class="col-lg-7">
+      <div class="fd-card p-3 h-100">
+        <h6 class="fw-bold mb-2"><i class="bi bi-bar-chart me-1"></i> Monthly earnings (₹)</h6>
+        <div class="chart-box"><canvas id="monthlyChart"></canvas></div>
+      </div>
+    </div>
+    <div class="col-lg-5">
+      <div class="fd-card p-3 h-100">
+        <h6 class="fw-bold mb-2"><i class="bi bi-pie-chart me-1"></i> Earnings by crop</h6>
+        <div class="chart-box"><canvas id="cropChart"></canvas></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== THE COMPARISON ===== -->
+  <div class="fd-card p-4 mt-3">
+    <h6 class="fw-bold"><i class="bi bi-diagram-3 me-1"></i> How selling direct improves your share of the final price</h6>
+    <div class="row g-4 mt-1">
+      <div class="col-lg-7">
+        <!-- Traditional -->
+        <div class="mb-3">
+          <div class="fd-subtle fw-bold mb-1">TRADITIONAL SUPPLY CHAIN — 4 middlemen</div>
+          <div class="fd-chain-row">
+            <span class="fd-chain-node farmer">Farmer <b>₹{{ comparison.mandi_price }}</b></span><span class="fd-chain-arrow">→</span>
+            <span class="fd-chain-node">Intermediary</span><span class="fd-chain-arrow">→</span>
+            <span class="fd-chain-node">Wholesaler</span><span class="fd-chain-arrow">→</span>
+            <span class="fd-chain-node">Retailer</span><span class="fd-chain-arrow">→</span>
+            <span class="fd-chain-node">Consumer <b>₹{{ comparison.traditional_retail }}</b></span>
+          </div>
+          <div class="progress mt-2" style="height:14px"><div class="progress-bar bg-secondary" style="width:{{ comparison.farmer_share_traditional }}%"></div></div>
+          <div class="tiny-note mt-1">You keep only <b>{{ comparison.farmer_share_traditional }}%</b> of the consumer rupee</div>
+        </div>
+        <!-- FarmDirect -->
+        <div>
+          <div class="fd-subtle fw-bold mb-1" style="color:var(--fd-green)">FARMDIRECT — zero middlemen</div>
+          <div class="fd-chain-row">
+            <span class="fd-chain-node farmer-direct">Farmer/FPO <b>₹{{ comparison.suggested }}</b></span><span class="fd-chain-arrow">→</span>
+            <span class="fd-chain-node" style="background:var(--fd-green-light)">FarmDirect <small>6% + logistics</small></span><span class="fd-chain-arrow">→</span>
+            <span class="fd-chain-node" style="background:var(--fd-green-light)">Consumer <b>₹{{ comparison.consumer_direct }}</b></span>
+          </div>
+          <div class="progress mt-2" style="height:14px"><div class="progress-bar" style="width:{{ comparison.farmer_share_direct }}%;background:var(--fd-green)"></div></div>
+          <div class="tiny-note mt-1">You keep <b>{{ comparison.farmer_share_direct }}%</b> — that's <b style="color:var(--fd-green)">₹{{ comparison.suggested - comparison.mandi_price }} extra per kg</b> ({{ ((comparison.suggested / comparison.mandi_price - 1) * 100)|round(0)|int }}% more earnings)</div>
+        </div>
+      </div>
+      <div class="col-lg-5">
+        <div class="chart-box"><canvas id="shareChart"></canvas></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Transactions -->
+  <div class="fd-card p-3 mt-3">
+    <h6 class="fw-bold mb-2"><i class="bi bi-receipt me-1"></i> Recent transactions</h6>
+    <div class="fd-table">
+      <table class="table align-middle">
+        <thead><tr><th>Order</th><th>Amount</th><th>Your share</th><th>Method</th><th>Status</th><th>Date</th></tr></thead>
+        <tbody>
+          {% for t in txns %}
+          <tr>
+            <td><b>{{ t['order_code'] }}</b></td>
+            <td>₹{{ '%g'|format(t['amount']) }}</td>
+            <td class="fw-bold" style="color:var(--fd-green)">₹{{ '%g'|format(t['farmer_share']) }}</td>
+            <td class="small">{{ t['method'] }}</td>
+            <td><span class="badge-fd {{ 'badge-status-delivered' if t['status'] == 'completed' else 'badge-status-pending' }}">{{ pretty_status(t['status']) }}</span></td>
+            <td class="fd-meta">{{ t['created_at'][:10] }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+{% endblock %}
+{% block scripts %}
+<script>
+new Chart(document.getElementById('monthlyChart'), {
+  type: 'line',
+  data: {
+    labels: [{% for m in monthly %}'{{ m['ym'] }}',{% endfor %}],
+    datasets: [{ label: 'Earnings ₹', data: [{% for m in monthly %}{{ '%g'|format(m['amt']) }},{% endfor %}],
+      borderColor: '#1e7d3e', backgroundColor: 'rgba(30,125,62,.12)', fill: true, tension: .35, borderWidth: 3 }]
+  },
+  options: { scales: { y: { beginAtZero: true } } }
+});
+new Chart(document.getElementById('cropChart'), {
+  type: 'doughnut',
+  data: {
+    labels: [{% for c in by_crop %}'{{ c['crop'] }}',{% endfor %}],
+    datasets: [{ data: [{% for c in by_crop %}{{ '%g'|format(c['amt']) }},{% endfor %}],
+      backgroundColor: ['#1e7d3e','#e8a013','#57b56e','#166088','#c94f3d','#5b3fa8'] }]
+  },
+  options: { cutout: '58%' }
+});
+new Chart(document.getElementById('shareChart'), {
+  type: 'bar',
+  data: {
+    labels: ['Traditional', 'FarmDirect'],
+    datasets: [
+      { label: 'Farmer keeps (₹)', data: [{{ comparison.mandi_price }}, {{ comparison.suggested }}], backgroundColor: '#1e7d3e', borderRadius: 6 },
+      { label: 'Middlemen & markups (₹)', data: [{{ comparison.traditional_retail - comparison.mandi_price }}, {{ comparison.consumer_direct - comparison.suggested }}], backgroundColor: '#d3d8d4', borderRadius: 6 }
+    ]
+  },
+  options: {
+    scales: { x: { stacked: true }, y: { stacked: true, beginAtZero: true, ticks: { callback: v => '₹' + v } } },
+    plugins: { tooltip: { callbacks: { label: c => c.dataset.label + ': ₹' + c.raw + '/kg' } } }
+  }
+});
+</script>
+{% endblock %}

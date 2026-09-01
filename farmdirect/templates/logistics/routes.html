@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% block title %}AI Route Optimization{% endblock %}
+{% block content %}
+<section class="container py-4">
+  <div class="d-flex justify-content-between align-items-end flex-wrap mb-3">
+    <div>
+      <h2 class="fd-section-title mb-0" style="font-size:1.5rem">🗺️ AI Route Optimization</h2>
+      <span class="fd-subtle">KMeans clustering (scikit-learn) + nearest-neighbour + 2-opt · simulated city map, no external API</span>
+    </div>
+    <a href="{{ url_for('views.logistics_dashboard') }}" class="btn btn-fd-outline"><i class="bi bi-arrow-left me-1"></i> Logistics Center</a>
+  </div>
+
+  <div class="row g-3">
+    <!-- Map -->
+    <div class="col-lg-8">
+      <div class="fd-card p-3">
+        <div id="fd-map"></div>
+        <div class="d-flex justify-content-between align-items-center mt-2 flex-wrap gap-2">
+          <div class="tiny-note" id="map-stop-info">Hover a numbered stop to inspect the delivery.</div>
+          <div class="d-flex gap-3 small">
+            {% for r in result.routes %}
+            <span><span style="display:inline-block;width:12px;height:12px;border-radius:3px;background:{{ ['#1e7d3e','#e8a013','#166088'][loop.index0 % 3] }};margin-right:4px"></span>{{ r.vehicle }} · {{ r.driver }}</span>
+            {% endfor %}
+            {% if result.get('skipped_intercity') %}
+            <span class="fd-meta"><i class="bi bi-info-circle"></i> {{ result.skipped_intercity }} inter-city bulk trip(s) handled separately</span>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="col-lg-4">
+      <div class="fd-card p-3 mb-3">
+        <h6 class="fw-bold mb-2"><i class="bi bi-graph-down-arrow me-1" style="color:var(--fd-green)"></i> Optimization result</h6>
+        <div class="d-flex justify-content-between small mb-1"><span class="fd-subtle">Individual trips (baseline)</span><b>{{ result.baseline.distance_km }} km · {{ result.baseline.eta_minutes }} min</b></div>
+        <div class="d-flex justify-content-between small mb-1"><span class="fd-subtle">Optimized pooled routes</span><b style="color:var(--fd-green)">{{ result.optimized.distance_km }} km · {{ result.optimized.eta_minutes }} min</b></div>
+        <div class="fd-divider my-2"></div>
+        <div class="text-center py-2">
+          <div class="fw-bold" style="font-size:2.2rem;color:var(--fd-green)">↓ {{ result.savings_pct }}%</div>
+          <div class="fd-meta">travel distance saved · {{ result.baseline.trips }} trips → {{ result.optimized.vehicles }} vehicles</div>
+        </div>
+        <p class="tiny-note text-center mb-0">Computed {{ result.generated_at }}</p>
+      </div>
+
+      <div class="fd-card p-3 mb-3">
+        <h6 class="fw-bold mb-2"><i class="bi bi-list-ol me-1"></i> Route details</h6>
+        {% for r in result.routes %}
+        <div class="border rounded-3 p-2 mb-2 small">
+          <div class="d-flex justify-content-between">
+            <b style="color:{{ ['#1e7d3e','#e8a013','#166088'][loop.index0 % 3] }}">{{ r.vehicle }}</b>
+            <span class="fd-meta">{{ r.distance_km }} km · ~{{ r.eta_minutes }} min</span>
+          </div>
+          <div class="fd-meta">Driver {{ r.driver }} · {{ r.deliveries }} stop(s)</div>
+          <ol class="tiny-note mb-0 mt-1 ps-3">
+            {% for s in r.stops %}<li>{{ s.order_code }} — {{ s.area }}</li>{% endfor %}
+          </ol>
+        </div>
+        {% endfor %}
+      </div>
+
+      <div class="fd-card p-3" style="background:var(--fd-green-soft)">
+        <h6 class="fw-bold small"><i class="bi bi-cpu"></i> MODEL CARD (for judges)</h6>
+        <p class="tiny-note mb-1"><b>Step 1:</b> KMeans groups nearby delivery drops into {{ result.optimized.vehicles }} geographic clusters.</p>
+        <p class="tiny-note mb-1"><b>Step 2:</b> Nearest-neighbour builds each route from the hub.</p>
+        <p class="tiny-note mb-1"><b>Step 3:</b> 2-opt local search removes route crossings.</p>
+        <p class="tiny-note mb-0"><b>Speed model:</b> 26 km/h city average + 8 min service time per stop. ETA &amp; distance shown per route.</p>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/map.js') }}"></script>
+<script>
+  window.FD_MAP_DATA = {{ map_data | safe }};
+  renderFdMap('fd-map', window.FD_MAP_DATA);
+</script>
+{% endblock %}

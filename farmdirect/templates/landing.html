@@ -1,0 +1,179 @@
+{% extends "base.html" %}
+{% block title %}From Farm to Consumer{% endblock %}
+{% block content %}
+
+<!-- ============ HERO ============ -->
+<section class="fd-hero">
+  <div class="container">
+    <div class="row align-items-center g-5">
+      <div class="col-lg-7">
+        <span class="fd-hero-chip"><i class="bi bi-patch-check-fill" style="color:var(--fd-green)"></i> SIH 2026 Prototype · Direct farmer marketplace</span>
+        <h1 class="mt-3 fw-bolder">From Farm to Consumer —<br><span style="color:var(--fd-green)">Better Prices for Everyone.</span></h1>
+        <p class="lead-sub mt-3 mb-4">FarmDirect removes unnecessary middlemen between Indian farmers and your plate.
+        Farmers earn more, you pay less, and AI-powered logistics keeps produce fresh on the fastest route.</p>
+        <div class="d-flex flex-wrap gap-2">
+          <a class="btn btn-fd btn-lg px-4" href="{{ url_for('views.marketplace') }}"><i class="bi bi-basket2 me-2"></i>Shop Fresh Produce</a>
+          <a class="btn btn-fd-outline btn-lg px-4" href="{{ url_for('auth.register') }}"><i class="bi bi-person-plus me-2"></i>Join as Farmer / FPO</a>
+        </div>
+        <div class="row mt-4 g-3" style="max-width:560px">
+          <div class="col-4"><div class="fd-stat text-center"><div class="stat-value" style="color:var(--fd-green)">{{ stats.farmers }}+</div><div class="stat-label">Farmers &amp; FPOs</div></div></div>
+          <div class="col-4"><div class="fd-stat text-center"><div class="stat-value" style="color:var(--fd-green)">{{ stats.products }}+</div><div class="stat-label">Live Listings</div></div></div>
+          <div class="col-4"><div class="fd-stat text-center"><div class="stat-value" style="color:var(--fd-green)">{{ stats.saved_pct }}%</div><div class="stat-label">Consumer Savings</div></div></div>
+        </div>
+      </div>
+      <div class="col-lg-5">
+        <div class="fd-hero-art">
+          <h4 class="fw-bold mb-1">🌾 Farmer gets <span class="text-warning">₹24/kg</span> instead of ₹13/kg</h4>
+          <p class="small mb-0" style="opacity:.9">Traditional chain pays the farmer barely half the retail rupee.
+          FarmDirect raises the farmer's share to ~85% while still lowering your bill.</p>
+          <div class="fd-float-card"><span style="font-size:1.6rem">🍅</span><div><div class="big">Nashik Red Tomato</div><div class="tiny-note">Grade A · Harvested 3 days ago · 850 kg left</div></div></div>
+          <div class="fd-float-card"><span style="font-size:1.6rem">🚚</span><div><div class="big">AI Route: 31% less travel</div><div class="tiny-note">Orders grouped by area · EV vans</div></div></div>
+          <div class="fd-float-card"><span style="font-size:1.6rem">📈</span><div><div class="big">Demand alert: Tomato ↑ 17%</div><div class="tiny-note">Festive season — suggested price updated</div></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 3 BENEFITS ============ -->
+<section class="container py-5">
+  <div class="row g-4">
+    <div class="col-md-4">
+      <div class="fd-benefit">
+        <div class="icon-bubble bubble-green">🌾</div>
+        <h5>Better Farmer Earnings</h5>
+        <p class="fd-subtle mb-0">Sell directly to consumers and bulk buyers at AI-recommended prices — no commission agents, no forced distress sales. Farmers keep ~85% of every rupee instead of ~52%.</p>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="fd-benefit">
+        <div class="icon-bubble bubble-amber">🛒</div>
+        <h5>Fair Consumer Prices</h5>
+        <p class="fd-subtle mb-0">Fewer intermediaries means fewer markups. Consumers get fresher produce at up to 23% below traditional retail, with full traceability to the farm.</p>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="fd-benefit">
+        <div class="icon-bubble bubble-sky">🚚</div>
+        <h5>Smarter Logistics</h5>
+        <p class="fd-subtle mb-0">AI groups nearby orders into optimized EV-van routes — cutting travel distance by ~30%, delivery time and carbon footprint in one go.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ FEATURED PRODUCE ============ -->
+<section class="container pb-4">
+  <div class="d-flex justify-content-between align-items-end mb-3">
+    <div>
+      <h2 class="fd-section-title" style="font-size:1.5rem">Fresh from the farms</h2>
+      <p class="fd-subtle">Harvested within days — straight from verified farmers &amp; FPOs</p>
+    </div>
+    <a href="{{ url_for('views.marketplace') }}" class="btn btn-fd-outline btn-sm">View all <i class="bi bi-arrow-right"></i></a>
+  </div>
+  <div class="row g-3">
+    {% for p in featured %}
+      {% include "partials/product_card.html" %}
+    {% endfor %}
+  </div>
+</section>
+
+<!-- ============ HOW IT WORKS ============ -->
+<section class="container py-4">
+  <div class="fd-card p-4 p-md-5">
+    <h2 class="fd-section-title" style="font-size:1.5rem">How FarmDirect works</h2>
+    <div class="row g-4 mt-2">
+      <div class="col-md-3">
+        <div class="d-flex align-items-center gap-2 mb-2"><span class="fd-avatar">1</span><h6 class="mb-0 fw-bold">Farmer lists produce</h6></div>
+        <p class="fd-subtle small mb-0">Crop, grade, quantity, harvest date &amp; price — in under 2 minutes, even on a basic phone. AI suggests the best price.</p>
+      </div>
+      <div class="col-md-3">
+        <div class="d-flex align-items-center gap-2 mb-2"><span class="fd-avatar">2</span><h6 class="mb-0 fw-bold">Buyer orders directly</h6></div>
+        <p class="fd-subtle small mb-0">Consumers check out from the marketplace; restaurants &amp; retailers request bulk quotations and compare suppliers.</p>
+      </div>
+      <div class="col-md-3">
+        <div class="d-flex align-items-center gap-2 mb-2"><span class="fd-avatar">3</span><h6 class="mb-0 fw-bold">Farmer accepts</h6></div>
+        <p class="fd-subtle small mb-0">Farmers confirm the order, produce is picked up by FarmDirect logistics — payment is secured on pickup.</p>
+      </div>
+      <div class="col-md-3">
+        <div class="d-flex align-items-center gap-2 mb-2"><span class="fd-avatar">4</span><h6 class="mb-0 fw-bold">AI delivers smartly</h6></div>
+        <p class="fd-subtle small mb-0">Nearby orders are grouped into optimized routes. Both sides track the delivery live until it reaches the door.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ CHAIN COMPARISON ============ -->
+<section class="container pb-5">
+  <div class="fd-card p-4 p-md-5">
+    <div class="row g-4 align-items-center">
+      <div class="col-lg-7">
+        <h2 class="fd-section-title" style="font-size:1.5rem">Where your money goes</h2>
+        <p class="fd-subtle">On average, a farmer receives only about half of what a consumer pays in the traditional supply chain.</p>
+        <div class="fd-chain-row mb-3">
+          <span class="fd-chain-node farmer">Farmer <b>₹13</b></span><span class="fd-chain-arrow">→</span>
+          <span class="fd-chain-node">Intermediary</span><span class="fd-chain-arrow">→</span>
+          <span class="fd-chain-node">Wholesaler</span><span class="fd-chain-arrow">→</span>
+          <span class="fd-chain-node">Retailer</span><span class="fd-chain-arrow">→</span>
+          <span class="fd-chain-node">Consumer <b>₹25</b></span>
+        </div>
+        <div class="fd-chain-row">
+          <span class="fd-chain-node farmer-direct">Farmer/FPO <b>₹24</b></span><span class="fd-chain-arrow">→</span>
+          <span class="fd-chain-node" style="background:var(--fd-green-light)">FarmDirect <small>(6% + logistics)</small></span><span class="fd-chain-arrow">→</span>
+          <span class="fd-chain-node" style="background:var(--fd-green-light)">Consumer <b>₹28</b></span>
+        </div>
+      </div>
+      <div class="col-lg-5">
+        <div class="p-3 rounded-4" style="background:var(--fd-green-soft)">
+          <div class="d-flex justify-content-between small fw-bold"><span>Farmer's share — traditional</span><span>52%</span></div>
+          <div class="progress mb-3" style="height:10px"><div class="progress-bar bg-secondary" style="width:52%"></div></div>
+          <div class="d-flex justify-content-between small fw-bold"><span>Farmer's share — FarmDirect</span><span style="color:var(--fd-green)">85%</span></div>
+          <div class="progress mb-3" style="height:10px"><div class="progress-bar" style="width:85%;background:var(--fd-green)"></div></div>
+          <div class="d-flex justify-content-between small fw-bold"><span>Consumer price vs retail</span><span style="color:var(--fd-amber)">−22%</span></div>
+          <div class="progress" style="height:10px"><div class="progress-bar bg-warning" style="width:78%"></div></div>
+          <p class="tiny-note mt-3 mb-0">Illustrative tomato example (per kg). The Farmer Earnings dashboard computes this live from real platform orders.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ ROLE CTA ============ -->
+<section class="container pb-5">
+  <h2 class="fd-section-title text-center" style="font-size:1.5rem">Built for everyone in the chain</h2>
+  <div class="row g-3 mt-2">
+    <div class="col-6 col-lg-3">
+      <div class="fd-card fd-card-hover p-4 text-center h-100">
+        <div style="font-size:2.2rem">👨‍🌾</div>
+        <h6 class="fw-bold mt-2">Farmers &amp; FPOs</h6>
+        <p class="fd-subtle small">List produce, accept orders, track earnings &amp; get AI price guidance.</p>
+        <a href="{{ url_for('auth.register') }}" class="btn btn-fd btn-sm w-100">Start Selling</a>
+      </div>
+    </div>
+    <div class="col-6 col-lg-3">
+      <div class="fd-card fd-card-hover p-4 text-center h-100">
+        <div style="font-size:2.2rem">🧺</div>
+        <h6 class="fw-bold mt-2">Consumers</h6>
+        <p class="fd-subtle small">Farm-fresh produce at fair prices with doorstep tracking.</p>
+        <a href="{{ url_for('views.marketplace') }}" class="btn btn-fd btn-sm w-100">Shop Now</a>
+      </div>
+    </div>
+    <div class="col-6 col-lg-3">
+      <div class="fd-card fd-card-hover p-4 text-center h-100">
+        <div style="font-size:2.2rem">🏪</div>
+        <h6 class="fw-bold mt-2">Bulk Buyers</h6>
+        <p class="fd-subtle small">Restaurants &amp; retailers: request quotes, compare suppliers.</p>
+        <a href="{{ url_for('auth.register') }}" class="btn btn-fd btn-sm w-100">Buy in Bulk</a>
+      </div>
+    </div>
+    <div class="col-6 col-lg-3">
+      <div class="fd-card fd-card-hover p-4 text-center h-100">
+        <div style="font-size:2.2rem">🛡️</div>
+        <h6 class="fw-bold mt-2">Admin</h6>
+        <p class="fd-subtle small">Marketplace analytics, logistics monitoring &amp; user management.</p>
+        <a href="{{ url_for('auth.login') }}" class="btn btn-fd-outline btn-sm w-100">Sign In</a>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}

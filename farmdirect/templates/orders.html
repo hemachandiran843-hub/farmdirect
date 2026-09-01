@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}My Orders{% endblock %}
+{% block content %}
+<section class="container py-4">
+  <h2 class="fd-section-title" style="font-size:1.5rem"><i class="bi bi-bag-check me-2"></i>My Orders</h2>
+  <p class="fd-subtle">Track every order from farm to door</p>
+
+  {% if orders %}
+  <div class="row g-3">
+    {% for o in orders %}
+    <div class="col-md-6">
+      <div class="fd-card fd-card-hover p-3 h-100">
+        <div class="d-flex justify-content-between align-items-start mb-2">
+          <div>
+            <h6 class="fw-bold mb-0">{{ o['order_code'] }}</h6>
+            <span class="fd-meta">{{ o['n_items'] }} item(s) · {{ days_ago(o['created_at'][:10]) }}</span>
+          </div>
+          <span class="badge-fd badge-status-{{ o['status'] }}">{{ pretty_status(o['status']) }}</span>
+        </div>
+        <div class="d-flex justify-content-between align-items-end">
+          <div>
+            <div class="fd-meta">Order type: {{ o['order_type']|title }} · {{ o['delivery_city'] }}</div>
+            <div class="fw-bold">₹{{ '%g'|format(o['total_amount']) }}</div>
+          </div>
+          <a class="btn btn-fd-outline btn-sm" href="{{ url_for('views.track_order', oid=o['id']) }}"><i class="bi bi-geo me-1"></i>Track</a>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="fd-card p-5 text-center mt-3">
+    <div style="font-size:2.6rem">📦</div>
+    <h5 class="fw-bold mt-2">No orders yet</h5>
+    <p class="fd-subtle">Your fresh harvest orders will appear here.</p>
+    <a href="{{ url_for('views.marketplace') }}" class="btn btn-fd">Start Shopping</a>
+  </div>
+  {% endif %}
+</section>
+{% endblock %}

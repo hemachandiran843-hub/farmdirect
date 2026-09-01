@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+{% block title %}IVR Call Detail{% endblock %}
+{% block content %}
+<section class="container py-4">
+  <div class="d-flex justify-content-between align-items-end flex-wrap mb-3">
+    <div>
+      <h2 class="fd-section-title mb-0" style="font-size:1.5rem">📞 IVR Call #{{ call['id'] }}</h2>
+      <span class="fd-subtle">Caller +{{ call['caller_number'] }} · session #{{ call['session_id'] }}</span>
+    </div>
+    <a class="btn btn-fd-outline" href="{{ url_for('views.ivr_admin') }}"><i class="bi bi-arrow-left me-1"></i>All IVR calls</a>
+  </div>
+
+  <div class="row g-3">
+    <div class="col-lg-5">
+      <div class="fd-card p-3">
+        <h6 class="fw-bold mb-2"><i class="bi bi-info-circle me-1"></i> Call summary</h6>
+        <table class="table small mb-0">
+          <tbody>
+            <tr><th class="w-50">Caller</th><td>+{{ call['caller_number'] }}</td></tr>
+            <tr><th>Farmer</th><td>{{ call['farmer_name'] or '—' }}</td></tr>
+            <tr><th>Language</th><td>{{ 'தமிழ்' if call['language'] == 'ta' else 'English' }}</td></tr>
+            <tr><th>Intent</th><td>{{ call['intent'] or '—' }}</td></tr>
+            <tr><th>Duration</th><td>{{ call['duration_sec'] }} sec</td></tr>
+            <tr><th>Listings created</th><td>{{ call['listings_created'] }}</td></tr>
+            <tr><th>Bulk orders accepted</th><td>{{ call['bulk_accepted'] }}</td></tr>
+            <tr><th>Price requests</th><td>{{ call['price_requests'] }}</td></tr>
+            <tr><th>Order requests</th><td>{{ call['order_requests'] }}</td></tr>
+            <tr><th>Earnings requests</th><td>{{ call['earnings_requests'] }}</td></tr>
+            <tr><th>Success</th><td>
+              {% if call['success'] %}<span class="badge-fd badge-status-delivered">Yes</span>
+              {% elif call['had_error'] %}<span class="badge-fd badge-status-rejected">Error</span>
+              {% else %}<span class="badge-fd badge-status-pending">Abandoned</span>{% endif %}
+            </td></tr>
+            <tr><th>Start</th><td class="fd-meta">{{ call['start_time'] }}</td></tr>
+            <tr><th>End</th><td class="fd-meta">{{ call['end_time'] or '—' }}</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      {% if session %}
+      <div class="fd-card p-3 mt-3">
+        <h6 class="fw-bold mb-2"><i class="bi bi-diagram-3 me-1"></i> Final session state</h6>
+        <table class="table small mb-0">
+          <tbody>
+            <tr><th>Menu</th><td><code>{{ session['current_menu'] }}</code></td></tr>
+            <tr><th>Intent</th><td><code>{{ session['current_intent'] or '—' }}</code></td></tr>
+            <tr><th>Auth</th><td>{{ session['auth_status'] }}</td></tr>
+            <tr><th>Status</th><td>{{ session['status'] }}</td></tr>
+            <tr><th>Failure count</th><td>{{ session['failure_count'] }}</td></tr>
+          </tbody>
+        </table>
+      </div>
+      {% endif %}
+    </div>
+
+    <div class="col-lg-7">
+      <div class="fd-card p-3">
+        <h6 class="fw-bold mb-2"><i class="bi bi-chat-text me-1"></i> Conversation transcript</h6>
+        <div class="ivr-transcript" style="background:#fff; border:1px solid var(--fd-border); height:auto; max-height:380px; margin:0;">
+          {% for t in transcript %}
+            <div class="ivr-bubble {{ t.role }}">
+              <span class="ivr-bubble-tag">{{ t.role|upper }}</span>
+              {{ t.text }}
+              {% if t.intent %}<span class="ivr-bubble-intent">{{ t.intent }}</span>{% endif %}
+            </div>
+          {% else %}
+            <div class="ivr-empty"><i class="bi bi-chat-square-text"></i><p>No transcript recorded.</p></div>
+          {% endfor %}
+        </div>
+      </div>
+
+      <div class="fd-card p-3 mt-3">
+        <h6 class="fw-bold mb-2"><i class="bi bi-list-ol me-1"></i> Event timeline</h6>
+        <div class="fd-table">
+          <table class="table align-middle small">
+            <thead><tr><th>Time</th><th>Type</th><th>Input</th><th>Intent</th><th>Backend action</th><th>Response</th></tr></thead>
+            <tbody>
+              {% for e in events %}
+              <tr>
+                <td class="fd-meta">{{ e['ts'] }}</td>
+                <td><span class="badge-fd badge-status-pending">{{ e['event_type'] }}</span></td>
+                <td>{{ e['raw_input'] or '—' }}</td>
+                <td><code>{{ e['intent'] or '—' }}</code></td>
+                <td><code>{{ e['backend_action'] or '—' }}</code></td>
+                <td class="fd-meta" style="max-width:280px">{{ (e['response_text'] or '')[:80] }}{% if e['response_text'] and e['response_text']|length > 80 %}…{% endif %}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/ivr.css') }}">
+{% endblock %}

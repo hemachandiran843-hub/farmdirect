@@ -1,0 +1,233 @@
+{% extends "base.html" %}
+{% block title %}Admin Dashboard{% endblock %}
+{% block content %}
+<section class="container py-4">
+  <div class="d-flex justify-content-between align-items-end flex-wrap mb-3">
+    <div>
+      <h2 class="fd-section-title mb-0" style="font-size:1.5rem">🛡️ Admin Control Panel</h2>
+      <span class="fd-subtle">Marketplace analytics · users · orders · logistics monitor</span>
+    </div>
+    <div class="d-flex gap-2">
+      <a class="btn btn-fd-outline" href="{{ url_for('views.logistics_dashboard') }}"><i class="bi bi-truck me-1"></i>Logistics</a>
+      <a class="btn btn-fd-outline" href="{{ url_for('views.route_optimizer_page') }}"><i class="bi bi-signpost-2 me-1"></i>Routes</a>
+    </div>
+  </div>
+
+  <div class="row g-3 mb-1">
+    <div class="col-6 col-md-3">
+      <div class="fd-stat"><div class="d-flex justify-content-between"><span class="stat-label">Platform GMV</span><span class="stat-icon">💰</span></div><div class="stat-value">{{ kpi['gmv']|inr }}</div><div class="tiny-note">{{ kpi['orders'] }} total orders</div></div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="fd-stat"><div class="d-flex justify-content-between"><span class="stat-label">Registered users</span><span class="stat-icon">👥</span></div><div class="stat-value">{{ kpi['users'] }}</div><div class="tiny-note">{{ kpi['farmers'] }} farmers/FPOs · {{ kpi['consumers'] }} consumers · {{ kpi['buyers'] }} bulk</div></div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="fd-stat"><div class="d-flex justify-content-between"><span class="stat-label">Farmer payout share</span><span class="stat-icon">🌾</span></div><div class="stat-value" style="color:var(--fd-green)">{{ kpi['farmer_share_pct'] }}%</div><div class="tiny-note">{{ kpi['farmer_payout']|inr }} paid to farmers</div></div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="fd-stat"><div class="d-flex justify-content-between"><span class="stat-label">Active listings</span><span class="stat-icon">🌾</span></div><div class="stat-value">{{ kpi['active_listings'] }}</div></div>
+    </div>
+  </div>
+
+  <ul class="nav nav-pills mt-4 mb-3 gap-2" id="adminTabs">
+    <li class="nav-item"><button class="nav-link active" data-bs-toggle="pill" data-bs-target="#tab-analytics"><i class="bi bi-graph-up me-1"></i>Analytics</button></li>
+    <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#tab-orders"><i class="bi bi-bag me-1"></i>Orders</button></li>
+    <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#tab-users"><i class="bi bi-people me-1"></i>Users</button></li>
+    <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#tab-products"><i class="bi bi-box-seam me-1"></i>Products</button></li>
+    <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#tab-transactions"><i class="bi bi-cash-stack me-1"></i>Transactions</button></li>
+    <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#tab-logistics"><i class="bi bi-truck me-1"></i>Logistics monitor</button></li>
+    <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#tab-ivr"><i class="bi bi-telephone-inbound me-1"></i>IVR</button></li>
+  </ul>
+
+  <div class="tab-content">
+    <!-- Analytics -->
+    <div class="tab-pane fade show active" id="tab-analytics">
+      <div class="row g-3">
+        <div class="col-lg-7"><div class="fd-card p-3 h-100"><h6 class="fw-bold mb-2">Order volume &amp; GMV by month</h6><div class="chart-box"><canvas id="ch-monthly"></canvas></div></div></div>
+        <div class="col-lg-5"><div class="fd-card p-3 h-100"><h6 class="fw-bold mb-2">GMV by crop</h6><div class="chart-box"><canvas id="ch-crop"></canvas></div></div></div>
+      </div>
+    </div>
+
+    <!-- Orders -->
+    <div class="tab-pane fade" id="tab-orders">
+      <div class="fd-table">
+        <table class="table align-middle">
+          <thead><tr><th>Order</th><th>Buyer</th><th>Type</th><th>Total</th><th>Status</th><th>Placed</th></tr></thead>
+          <tbody>
+            {% for o in orders %}
+            <tr>
+              <td><b>{{ o['order_code'] }}</b></td>
+              <td>{{ o['buyer'] }}</td>
+              <td><span class="fd-meta">{{ o['order_type'] }}</span></td>
+              <td>₹{{ '%g'|format(o['total_amount']) }}</td>
+              <td><span class="badge-fd badge-status-{{ o['status'] }}">{{ pretty_status(o['status']) }}</span></td>
+              <td class="fd-meta">{{ o['created_at'][:10] }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Users -->
+    <div class="tab-pane fade" id="tab-users">
+      <div class="fd-table">
+        <table class="table align-middle">
+          <thead><tr><th>User</th><th>Role</th><th>Location</th><th>Joined</th><th>Status</th><th class="text-end">Action</th></tr></thead>
+          <tbody>
+            {% for u in users %}
+            <tr>
+              <td><b>{{ u['name'] }}</b><br><span class="fd-meta">{{ u['email'] }}</span></td>
+              <td><span class="badge-fd badge-grade-{{ 'A' if u['role'] in ('farmer','fpo') else 'B' }}">{{ u['role']|upper }}</span></td>
+              <td class="small">{{ u['city'] }}</td>
+              <td class="fd-meta">{{ u['created_at'][:10] }}</td>
+              <td><span class="badge-fd {{ 'badge-status-delivered' if u['active'] else 'badge-status-rejected' }}">{{ 'active' if u['active'] else 'suspended' }}</span></td>
+              <td class="text-end">
+                {% if u['role'] != 'admin' %}
+                <button class="btn btn-sm {{ 'btn-outline-danger' if u['active'] else 'btn-fd' }}" onclick="toggleUser({{ u['id'] }})">{{ 'Suspend' if u['active'] else 'Activate' }}</button>
+                {% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Products -->
+    <div class="tab-pane fade" id="tab-products">
+      <div class="fd-table">
+        <table class="table align-middle">
+          <thead><tr><th>Listing</th><th>Seller</th><th>Grade</th><th>Qty</th><th>Price/kg</th><th>Status</th><th class="text-end">Action</th></tr></thead>
+          <tbody>
+            {% for p in products %}
+            <tr>
+              <td><b>{{ CROP_META.get(p['crop'], {}).get('icon','🌾') }} {{ p['name'] }}</b></td>
+              <td class="small">{{ p['seller'] }}</td>
+              <td><span class="badge-fd badge-grade-{{ p['grade'] }}">{{ p['grade'] }}</span></td>
+              <td>{{ p['quantity_kg']|kg }}</td>
+              <td>₹{{ '%g'|format(p['price_per_kg']) }}</td>
+              <td><span class="badge-fd {{ 'badge-status-delivered' if p['status'] == 'active' else 'badge-status-pending' }}">{{ pretty_status(p['status']) }}</span></td>
+              <td class="text-end">
+                {% if p['status'] == 'active' %}
+                <button class="btn btn-sm btn-outline-danger" onclick="setProduct({{ p['id'] }}, 'removed')">Remove</button>
+                {% else %}
+                <button class="btn btn-sm btn-fd" onclick="setProduct({{ p['id'] }}, 'active')">Restore</button>
+                {% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Transactions -->
+    <div class="tab-pane fade" id="tab-transactions">
+      <div class="fd-table">
+        <table class="table align-middle">
+          <thead><tr><th>Order</th><th>Amount</th><th>Farmer share</th><th>Platform fee</th><th>Method</th><th>Status</th></tr></thead>
+          <tbody>
+            {% for t in txns %}
+            <tr>
+              <td><b>{{ t['order_code'] }}</b></td>
+              <td>₹{{ '%g'|format(t['amount']) }}</td>
+              <td style="color:var(--fd-green)">₹{{ '%g'|format(t['farmer_share']) }}</td>
+              <td>₹{{ '%g'|format(t['platform_fee']) }}</td>
+              <td class="small">{{ t['method'] }}</td>
+              <td><span class="badge-fd {{ 'badge-status-delivered' if t['status'] == 'completed' else 'badge-status-pending' }}">{{ pretty_status(t['status']) }}</span></td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Logistics monitor -->
+    <div class="tab-pane fade" id="tab-logistics">
+      <div class="fd-table">
+        <table class="table align-middle">
+          <thead><tr><th>Order</th><th>Route</th><th>Driver</th><th>Distance</th><th>ETA</th><th>Status</th></tr></thead>
+          <tbody>
+            {% for d in deliveries %}
+            <tr>
+              <td><b>{{ d['order_code'] }}</b></td>
+              <td class="small">{{ d['pickup_name'] }} → {{ d['drop_name'] }}</td>
+              <td class="small">{{ d['driver_name'] }}</td>
+              <td>{{ d['distance_km'] }} km</td>
+              <td>~{{ d['eta_minutes'] }} min</td>
+              <td><span class="badge-fd badge-status-{{ d['status'] }}">{{ pretty_status(d['status']) }}</span></td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- IVR tab -->
+    <div class="tab-pane fade" id="tab-ivr">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+          <h6 class="fw-bold mb-0"><i class="bi bi-telephone-inbound me-1"></i> IVR Voice Channel</h6>
+          <span class="fd-subtle small">Voice calls from farmers without smartphones — Tamil / English, DTMF + speech</span>
+        </div>
+        <a class="btn btn-fd" href="{{ url_for('views.ivr_admin') }}"><i class="bi bi-bar-chart me-1"></i>Open IVR Dashboard</a>
+      </div>
+      <div class="row g-3">
+        <div class="col-md-6">
+          <div class="fd-card p-3">
+            <h6 class="fw-bold mb-2">Open the IVR Simulator</h6>
+            <p class="fd-subtle small mb-3">Try the IVR from inside the app — same backend as a real phone call. Tamil & English, speech + keypad.</p>
+            <a class="btn btn-fd w-100" href="{{ url_for('views.ivr_simulator') }}"><i class="bi bi-telephone me-1"></i> Launch Simulator</a>
+          </div>
+        </div>
+        <div class="col-md-6">
+          <div class="fd-card p-3">
+            <h6 class="fw-bold mb-2">Connect a real phone number</h6>
+            <p class="fd-subtle small mb-2">Configure Twilio (or any compatible telephony provider) via environment variables:</p>
+            <pre class="ivr-config-snippet"><code>IVR_MODE=production
+IVR_TWILIO_ACCOUNT_SID=ACxxxxx
+IVR_TWILIO_AUTH_TOKEN=xxxxx
+IVR_TWILIO_NUMBER=+91xxxxxxxxxx
+IVR_PUBLIC_BASE_URL=https://your-app.example</code></pre>
+            <span class="tiny-note">Then point Twilio's voice webhook to <code>/api/ivr/incoming</code> and status callback to <code>/api/ivr/callback</code>.</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}
+{% block scripts %}
+<script>
+new Chart(document.getElementById('ch-monthly'), {
+  data: {
+    labels: [{% for m in monthly %}'{{ m['ym'] }}',{% endfor %}],
+    datasets: [
+      { type: 'bar', label: 'GMV ₹', data: [{% for m in monthly %}{{ '%g'|format(m['amt']) }},{% endfor %}], backgroundColor: '#1e7d3e', borderRadius: 6, yAxisID: 'y' },
+      { type: 'line', label: 'Orders', data: [{% for m in monthly %}{{ m['n'] }},{% endfor %}], borderColor: '#e8a013', backgroundColor: '#e8a013', tension: .35, borderWidth: 3, yAxisID: 'y1' }
+    ]
+  },
+  options: { scales: {
+    y: { position: 'left', beginAtZero: true, ticks: { callback: v => '₹' + (v >= 1000 ? (v/1000) + 'k' : v) } },
+    y1: { position: 'right', beginAtZero: true, grid: { drawOnChartArea: false } }
+  } }
+});
+new Chart(document.getElementById('ch-crop'), {
+  type: 'doughnut',
+  data: {
+    labels: [{% for c in by_crop %}'{{ c['crop'] }}',{% endfor %}],
+    datasets: [{ data: [{% for c in by_crop %}{{ '%g'|format(c['amt']) }},{% endfor %}],
+      backgroundColor: ['#1e7d3e','#e8a013','#57b56e','#166088','#c94f3d','#5b3fa8'] }]
+  },
+  options: { cutout: '58%' }
+});
+async function toggleUser(uid) {
+  try { await api(S + `/api/admin/users/${uid}/toggle`, {}); location.reload(); }
+  catch (e) { fdToast(e.message, true); }
+}
+async function setProduct(pid, status) {
+  try { await api(S + `/api/admin/products/${pid}/status`, { status }); location.reload(); }
+  catch (e) { fdToast(e.message, true); }
+}
+</script>
+{% endblock %}

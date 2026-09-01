@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+{% block title %}Logistics Dashboard{% endblock %}
+{% block content %}
+<section class="container py-4">
+  <div class="d-flex justify-content-between align-items-end flex-wrap mb-3">
+    <div>
+      <h2 class="fd-section-title mb-0" style="font-size:1.5rem">🚚 Logistics Control Center</h2>
+      <span class="fd-subtle">Pending → Confirmed → Picked Up → In Transit → Delivered</span>
+    </div>
+    <a href="{{ url_for('views.route_optimizer_page') }}" class="btn btn-fd"><i class="bi bi-signpost-2 me-1"></i> Open Route Optimizer</a>
+  </div>
+
+  <div class="row g-3 mb-1">
+    <div class="col-6 col-md-3">
+      <div class="fd-stat"><div class="d-flex justify-content-between"><span class="stat-label">Total deliveries</span><span class="stat-icon">📋</span></div><div class="stat-value">{{ kpi['total'] }}</div></div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="fd-stat"><div class="d-flex justify-content-between"><span class="stat-label">Completed</span><span class="stat-icon">✅</span></div><div class="stat-value" style="color:var(--fd-green)">{{ kpi['delivered'] or 0 }}</div></div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="fd-stat"><div class="d-flex justify-content-between"><span class="stat-label">Active now</span><span class="stat-icon">🚚</span></div><div class="stat-value stat-amber">{{ (pickups|length) + (dropoffs|length) }}</div><div class="tiny-note">pickups + in transit</div></div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="fd-stat"><div class="d-flex justify-content-between"><span class="stat-label">Avg route distance</span><span class="stat-icon">📍</span></div><div class="stat-value">{{ '%.1f'|format(kpi['avg_dist']) }} km</div><div class="tiny-note">per delivery</div></div>
+    </div>
+  </div>
+
+  <div class="row g-3 mt-2">
+    <!-- Pickups -->
+    <div class="col-lg-6">
+      <div class="fd-card p-3 h-100">
+        <h6 class="fw-bold mb-2"><i class="bi bi-box-seam me-1 text-warning"></i> Pickup list (confirmed, awaiting pickup)</h6>
+        {% for d in pickups %}
+        <div class="border rounded-3 p-2 mb-2">
+          <div class="d-flex justify-content-between align-items-center">
+            <div class="small">
+              <b>{{ d['order_code'] }}</b> · {{ d['buyer'] }} <span class="fd-meta">({{ d['order_type'] }})</span><br>
+              <span class="fd-meta"><i class="bi bi-geo-alt"></i> {{ d['pickup_name'] }} → {{ d['drop_name'] }}</span>
+            </div>
+            <div class="text-end">
+              <span class="badge-fd badge-status-{{ d['status'] }}">{{ pretty_status(d['status']) }}</span>
+              <div class="tiny-note mt-1">{{ d['distance_km'] }} km · driver {{ d['driver_name'] }}</div>
+              <button class="btn btn-fd btn-sm mt-1" onclick="deliveryAdvance({{ d['id'] }}, 'picked_up')">Mark Picked Up</button>
+            </div>
+          </div>
+        </div>
+        {% else %}
+        <p class="fd-subtle small mb-0">No pickups pending — all caught up! 🎉</p>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- Dropoffs -->
+    <div class="col-lg-6">
+      <div class="fd-card p-3 h-100">
+        <h6 class="fw-bold mb-2"><i class="bi bi-truck me-1 text-warning"></i> Delivery list (on the road)</h6>
+        {% for d in dropoffs %}
+        <div class="border rounded-3 p-2 mb-2">
+          <div class="d-flex justify-content-between align-items-center">
+            <div class="small">
+              <b>{{ d['order_code'] }}</b> · {{ d['buyer'] }}<br>
+              <span class="fd-meta"><i class="bi bi-geo"></i> → {{ d['drop_name'] }} · {{ d['distance_km'] }} km · ETA ~{{ d['eta_minutes'] }} min</span>
+            </div>
+            <div class="text-end">
+              <span class="badge-fd badge-status-{{ d['status'] }}">{{ pretty_status(d['status']) }}</span>
+              {% if d['status'] == 'picked_up' %}
+              <button class="btn btn-fd btn-sm mt-1" onclick="deliveryAdvance({{ d['id'] }}, 'in_transit')">Start Transit</button>
+              {% else %}
+              <button class="btn btn-fd btn-sm mt-1" onclick="deliveryAdvance({{ d['id'] }}, 'delivered')">Mark Delivered</button>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+        {% else %}
+        <p class="fd-subtle small mb-0">Nothing in transit right now.</p>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-3 mt-1">
+    <!-- Drivers -->
+    <div class="col-lg-6">
+      <div class="fd-card p-3 h-100">
+        <h6 class="fw-bold mb-2"><i class="bi bi-person-badge me-1"></i> Driver status</h6>
+        {% for dr in drivers %}
+        <div class="d-flex justify-content-between align-items-center border-bottom py-2">
+          <div>
+            <b>{{ dr['driver_name'] }}</b> <span class="fd-meta">· {{ dr['vehicle'] }}</span><br>
+            <span class="fd-meta"><i class="bi bi-telephone"></i> {{ dr['driver_phone'] }} · {{ dr['n_jobs'] }} active job(s)</span>
+          </div>
+          <span class="badge-fd badge-status-{{ dr['status'] }}">{{ pretty_status(dr['status']) }}</span>
+        </div>
+        {% else %}
+        <p class="fd-subtle small mb-0">No active driver assignments.</p>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- Completed -->
+    <div class="col-lg-6">
+      <div class="fd-card p-3 h-100">
+        <h6 class="fw-bold mb-2"><i class="bi bi-check2-all me-1" style="color:var(--fd-green)"></i> Recently delivered</h6>
+        {% for d in recent %}
+        <div class="d-flex justify-content-between align-items-center border-bottom py-2 small">
+          <span><b>{{ d['order_code'] }}</b> · {{ d['drop_name'] }}</span>
+          <span class="fd-meta">{{ d['distance_km'] }} km · <span class="badge-fd badge-status-delivered">delivered</span></span>
+        </div>
+        {% else %}
+        <p class="fd-subtle small mb-0">No completed deliveries yet.</p>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}

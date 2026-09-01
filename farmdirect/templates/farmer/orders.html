@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}My Orders — Farmer{% endblock %}
+{% block content %}
+<section class="container py-4">
+  <h2 class="fd-section-title" style="font-size:1.5rem"><i class="bi bi-bag-check me-2"></i>Orders for my produce</h2>
+  <p class="fd-subtle">Accept or reject incoming orders — accepted items are scheduled for pickup</p>
+
+  <div class="fd-card p-3">
+    <div class="fd-table">
+      <table class="table align-middle">
+        <thead><tr><th>Order</th><th>Produce</th><th>Buyer</th><th>Qty × price</th><th class="text-end">You earn</th><th>Item status</th><th class="text-end">Action</th></tr></thead>
+        <tbody>
+          {% for oi in items %}
+          <tr>
+            <td>
+              <b>{{ oi['order_code'] }}</b><br>
+              <span class="fd-meta">{{ days_ago(oi['created_at'][:10]) }} · {{ oi['delivery_city'] }}</span>
+            </td>
+            <td>{{ oi['product_name'] }}</td>
+            <td>{{ oi['buyer'] }}</td>
+            <td>{{ oi['quantity_kg']|kg }} × ₹{{ '%g'|format(oi['unit_price']) }}</td>
+            <td class="text-end fw-bold">₹{{ '%g'|format(oi['subtotal']) }}</td>
+            <td><span class="badge-fd badge-status-{{ oi['item_status'] }}">{{ pretty_status(oi['item_status']) }}</span></td>
+            <td class="text-end">
+              {% if oi['item_status'] == 'pending' and oi['order_status'] == 'pending' %}
+              <div class="d-flex gap-1 justify-content-end">
+                <button class="btn btn-fd btn-sm" onclick="itemStatus({{ oi['order_id'] }}, {{ oi['id'] }}, 'accept')">Accept</button>
+                <button class="btn btn-outline-danger btn-sm" onclick="itemStatus({{ oi['order_id'] }}, {{ oi['id'] }}, 'reject')">Reject</button>
+              </div>
+              {% else %}
+              <span class="fd-meta">order {{ pretty_status(oi['order_status']) }}</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+{% endblock %}

@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block title %}Cart{% endblock %}
+{% block content %}
+<section class="container py-4">
+  <h2 class="fd-section-title" style="font-size:1.5rem"><i class="bi bi-cart3 me-2"></i>Your Cart</h2>
+  <p class="fd-subtle">{{ items|length }} item(s) — review quantities before checkout</p>
+
+  {% if items %}
+  <div class="row g-4">
+    <div class="col-lg-8">
+      <div class="fd-table">
+        <table class="table align-middle">
+          <thead><tr><th>Produce</th><th>Farmer</th><th style="width:130px">Qty (kg)</th><th class="text-end">Price</th><th class="text-end">Subtotal</th><th></th></tr></thead>
+          <tbody>
+            {% for i in items %}
+            <tr id="cart-row-{{ i['id'] }}">
+              <td>
+                <div class="d-flex align-items-center gap-2">
+                  <div class="avatar-crop" style="background:var(--fd-green-light)">{{ CROP_META.get(i['crop'], {}).get('icon','🌾') }}</div>
+                  <div>
+                    <a class="fw-bold text-decoration-none text-body" href="{{ url_for('views.product_detail', pid=i['product_id']) }}">{{ i['name'] }}</a>
+                    <div class="fd-meta">Grade {{ i['grade'] }} {% if i.organic %}· 🌿{% endif %} · ₹{{ '%g'|format(i['price_per_kg']) }}/kg</div>
+                  </div>
+                </div>
+              </td>
+              <td class="small">{{ i['seller'] }}<br><span class="fd-meta">{{ i['city'] }}</span></td>
+              <td><input type="number" class="form-control form-control-sm" value="{{ '%g'|format(i['quantity_kg']) }}" min="0.5" step="0.5" style="width:90px" onchange="cartUpdateQty({{ i['id'] }}, this)"></td>
+              <td class="text-end">₹{{ '%g'|format(i['price_per_kg']) }}</td>
+              <td class="text-end fw-bold">₹{{ '%g'|format(i['price_per_kg'] * i['quantity_kg']) }}</td>
+              <td class="text-end"><button class="btn btn-sm btn-link text-danger p-0" onclick="cartRemove({{ i['id'] }})"><i class="bi bi-trash3"></i></button></td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="col-lg-4">
+      <div class="fd-card p-4">
+        <h6 class="fw-bold mb-3">Order summary</h6>
+        <div class="d-flex justify-content-between small mb-2"><span class="fd-subtle">Item subtotal</span><b>₹{{ '%g'|format(subtotal) }}</b></div>
+        <div class="d-flex justify-content-between small mb-2"><span class="fd-subtle">Platform fee (6%)</span><b>₹{{ '%g'|format(platform_fee) }}</b></div>
+        <div class="d-flex justify-content-between small mb-2"><span class="fd-subtle">Delivery</span><b>₹{{ '%g'|format(delivery_fee) }}</b></div>
+        <div class="fd-divider"></div>
+        <div class="d-flex justify-content-between mb-3"><span class="fw-bold">Total</span><span class="fd-price" style="font-size:1.4rem">₹{{ '%g'|format(total) }}</span></div>
+        <a class="btn btn-fd w-100 py-2" href="{{ url_for('views.checkout') }}">Proceed to Checkout <i class="bi bi-arrow-right ms-1"></i></a>
+        <p class="tiny-note text-center mt-2 mb-0">vs traditional retail you'd pay ≈ <s>₹{{ '%g'|format(subtotal * 1.8) }}</s> — saving ₹{{ '%g'|format(subtotal * 0.8) }}</p>
+      </div>
+    </div>
+  </div>
+  {% else %}
+  <div class="fd-card p-5 text-center mt-3">
+    <div style="font-size:2.6rem">🧺</div>
+    <h5 class="fw-bold mt-2">Your cart is empty</h5>
+    <p class="fd-subtle">Fill it with fresh harvests from our farmers.</p>
+    <a href="{{ url_for('views.marketplace') }}" class="btn btn-fd">Browse Marketplace</a>
+  </div>
+  {% endif %}
+</section>
+{% endblock %}

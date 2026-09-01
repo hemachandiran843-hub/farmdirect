@@ -1,0 +1,124 @@
+{% extends "base.html" %}
+{% block title %}AI Demand Forecast{% endblock %}
+{% block content %}
+<section class="container py-4">
+  <div class="d-flex justify-content-between align-items-end flex-wrap mb-1">
+    <div>
+      <h2 class="fd-section-title mb-0" style="font-size:1.5rem">📈 AI Demand Forecast</h2>
+      <span class="fd-subtle">scikit-learn regression on regional sales history · season · crop · market signals</span>
+    </div>
+    <div class="d-flex gap-2 align-items-end">
+      <form method="get" class="d-flex gap-2">
+        <select class="form-select" name="crop" onchange="this.form.submit()">
+          {% for c in crops %}<option value="{{ c }}" {% if c == crop %}selected{% endif %}>{{ CROP_META.get(c, {}).get('icon','🌾') }} {{ c }}</option>{% endfor %}
+        </select>
+        <select class="form-select" name="horizon" onchange="this.form.submit()">
+          <option value="7" {% if horizon == 7 %}selected{% endif %}>Next 7 days</option>
+          <option value="30" {% if horizon == 30 %}selected{% endif %}>Next 30 days</option>
+        </select>
+      </form>
+    </div>
+  </div>
+
+  <!-- Headline stat -->
+  <div class="fd-card p-4 mt-3" style="border-left:5px solid var(--fd-{{ 'green' if fc.trend == 'Increasing' else 'amber' }})">
+    <div class="row align-items-center g-3">
+      <div class="col-md-3">
+        <div class="d-flex align-items-center gap-3">
+          <div style="font-size:3rem">{{ CROP_META.get(fc.crop, {}).get('icon','🌾') }}</div>
+          <div><h3 class="fw-bold mb-0">{{ fc.crop }}</h3><span class="fd-subtle">Regional demand · all cities</span></div>
+        </div>
+      </div>
+      <div class="col-md-3"><div class="stat-label">Current demand</div><div class="stat-value" style="font-size:1.7rem">{{ fc.current_demand|inr }}</div><div class="tiny-note">kg / week (last 4 weeks)</div></div>
+      <div class="col-md-3"><div class="stat-label">Predicted demand</div><div class="stat-value" style="font-size:1.7rem;color:var(--fd-green)">{{ fc.predicted_demand|inr }}</div><div class="tiny-note">kg / week (next 7 days{% if fc.get('festival_uplift', 1) > 1 %} · festive uplift ×{{ fc['festival_uplift'] }}{% endif %})</div></div>
+      <div class="col-md-3 text-md-end">
+        <span class="badge-fd fs-6 {{ 'badge-status-delivered' if fc.trend == 'Increasing' else ('badge-status-rejected' if fc.trend == 'Decreasing' else 'badge-status-pending') }}">
+          <i class="bi bi-arrow-{{ 'up-right' if fc.trend == 'Increasing' else ('down-right' if fc.trend == 'Decreasing' else 'right') }}"></i> {{ fc.trend }}
+        </span>
+        <div class="tiny-note mt-2">Model confidence: <b>{{ (fc.confidence * 100)|round(0)|int }}%</b><br>
+        {% if horizon == 7 %}Total next 7 days ≈ {{ fc.get('total_horizon', fc.predicted_demand)|kg }}{% else %}Total next 30 days ≈ {{ fc.get('total_horizon', 0)|kg }}{% endif %}</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-3 mt-1">
+    <div class="col-lg-8">
+      <div class="fd-card p-3 h-100">
+        <h6 class="fw-bold mb-2">Historical sales vs AI forecast (kg/day)</h6>
+        <div class="chart-box"><canvas id="forecastChart"></canvas></div>
+      </div>
+    </div>
+    <div class="col-lg-4">
+      <div class="fd-card p-3 mb-3">
+        <h6 class="fw-bold mb-2"><i class="bi bi-lightbulb me-1 text-warning"></i> What should I do?</h6>
+        <ul class="fd-subtle small mb-0 ps-3">
+          {% if fc.trend == 'Increasing' %}
+          <li>Demand is rising — <b>hold or raise prices slightly</b> using the AI price guide.</li>
+          <li>List additional stock of {{ fc.crop }} before the weekend peak.</li>
+          <li>Consider pre-booking bulk buyers at the higher suggested price.</li>
+          {% elif fc.trend == 'Decreasing' %}
+          <li>Demand is cooling — <b>sell existing stock quickly</b> at the suggested price.</li>
+          <li>Avoid listing large new quantities this week.</li>
+          <li>Consider grade B pricing to move volume faster.</li>
+          {% else %}
+          <li>Demand is stable — keep listing steady quantities at the suggested price.</li>
+          <li>Weekend demand is typically higher — schedule harvest mid-week.</li>
+          {% endif %}
+        </ul>
+      </div>
+      <div class="fd-card p-3" style="background:var(--fd-green-soft)">
+        <h6 class="fw-bold small">MODEL CARD (for judges)</h6>
+        <p class="tiny-note mb-1"><b>Algorithm:</b> {{ fc.get('model','sklearn LinearRegression') }}</p>
+        <p class="tiny-note mb-1"><b>Features:</b> time trend, weekday season (sin/cos), market/weather signal, festival uplift</p>
+        <p class="tiny-note mb-1"><b>Training data:</b> last 60 days of platform sales ({{ fc.history|length }} points shown)</p>
+        <p class="tiny-note mb-0"><b>Validation:</b> 21-day back-test, MAPE-based confidence {{ (fc.confidence * 100)|round(0)|int }}%</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Other crops -->
+  <h6 class="fw-bold mt-4 mb-2">Other crops — weekly demand outlook</h6>
+  <div class="row g-3">
+    {% for o in others %}
+    <div class="col-6 col-md-4 col-lg-3">
+      <div class="fd-card fd-card-hover p-3 h-100">
+        <div class="d-flex justify-content-between align-items-start">
+          <div>
+            <b>{{ CROP_META.get(o.crop, {}).get('icon','🌾') }} {{ o.crop }}</b>
+            <div class="fd-meta">{{ o.current_demand|kg }}/wk → <b style="color:var(--fd-green)">{{ o.predicted_demand|kg }}</b></div>
+          </div>
+          <span class="badge-fd {{ 'badge-status-delivered' if o.trend == 'Increasing' else ('badge-status-rejected' if o.trend == 'Decreasing' else 'badge-status-pending') }}" style="font-size:.7rem">{{ o.trend[:4] }}.</span>
+        </div>
+        <div class="progress mt-2" style="height:6px"><div class="progress-bar" style="width:{{ [100, (o.predicted_demand / o.current_demand * 50)|round(0)|int ]|min }}%;background:var(--fd-green)"></div></div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</section>
+{% endblock %}
+{% block scripts %}
+<script>
+new Chart(document.getElementById('forecastChart'), {
+  type: 'line',
+  data: {
+    labels: [{% for pt in fc.history %}'{{ pt.d }}',{% endfor %}{% for pt in fc.forecast %}'{{ pt.d }}',{% endfor %}],
+    datasets: [
+      {
+        label: 'Actual sales (kg/day)',
+        data: [{% for pt in fc.history %}{{ pt.q }},{% endfor %}{% for pt in fc.forecast %}null,{% endfor %}],
+        borderColor: '#1e7d3e', backgroundColor: 'rgba(30,125,62,.10)', fill: true, tension: .3, borderWidth: 2.5, pointRadius: 0, spanGaps: false
+      },
+      {
+        label: 'AI forecast (kg/day)',
+        data: [{% for pt in fc.history %}null,{% endfor %}{% for pt in fc.forecast %}{{ pt.q }},{% endfor %}],
+        borderColor: '#e8a013', backgroundColor: 'rgba(232,160,19,.12)', fill: true, borderDash: [6, 4], tension: .3, borderWidth: 2.5, pointRadius: 0, spanGaps: true
+      }
+    ]
+  },
+  options: {
+    interaction: { mode: 'index', intersect: false },
+    scales: { y: { beginAtZero: true, title: { display: true, text: 'kg / day' } } }
+  }
+});
+</script>
+{% endblock %}

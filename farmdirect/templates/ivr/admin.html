@@ -1,0 +1,138 @@
+{% extends "base.html" %}
+{% block title %}IVR Admin Dashboard{% endblock %}
+{% block content %}
+<section class="container py-4">
+  <div class="d-flex justify-content-between align-items-end flex-wrap mb-3">
+    <div>
+      <h2 class="fd-section-title mb-0" style="font-size:1.5rem">📞 IVR Management</h2>
+      <span class="fd-subtle">Voice-call analytics · transcripts · backend actions · provider status</span>
+    </div>
+    <div class="d-flex gap-2">
+      <a class="btn btn-fd-outline" href="{{ url_for('views.ivr_simulator') }}"><i class="bi bi-telephone me-1"></i>Open Simulator</a>
+      <a class="btn btn-fd-outline" href="{{ url_for('views.admin_dashboard') }}"><i class="bi bi-speedometer2 me-1"></i>Back to Admin</a>
+    </div>
+  </div>
+
+  <!-- mode card -->
+  <div class="fd-card p-3 mb-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
+    <div>
+      <h6 class="fw-bold mb-1"><i class="bi bi-gear me-1"></i> IVR provider mode</h6>
+      <div class="small fd-subtle">Active telephony / TTS / STT / intent providers (set via environment variables).</div>
+    </div>
+    <div class="d-flex gap-3 small flex-wrap">
+      <span><b>Mode:</b> <span class="ivr-mode-pill">{{ mode.mode|upper }}</span></span>
+      <span><b>Telephony:</b> <code>{{ mode.telephony }}</code></span>
+      <span><b>TTS:</b> <code>{{ mode.tts }}</code></span>
+      <span><b>STT:</b> <code>{{ mode.stt }}</code></span>
+      <span><b>Intent:</b> <code>{{ mode.intent }}</code></span>
+      {% if mode.ivr_number %}<span><b>IVR number:</b> {{ mode.ivr_number }}</span>{% endif %}
+    </div>
+  </div>
+
+  <!-- KPI cards -->
+  <div class="row g-3 mb-2">
+    <div class="col-6 col-md-3">
+      <div class="fd-stat"><div class="d-flex justify-content-between"><span class="stat-label">Total calls</span><span class="stat-icon">📞</span></div><div class="stat-value">{{ kpi['total_calls'] }}</div><div class="tiny-note">{{ kpi['active_sessions'] }} active sessions</div></div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="fd-stat"><div class="d-flex justify-content-between"><span class="stat-label">Successful</span><span class="stat-icon">✅</span></div><div class="stat-value" style="color:var(--fd-green)">{{ kpi['successful'] }}</div><div class="tiny-note">{{ kpi['failed'] }} failed / errored</div></div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="fd-stat"><div class="d-flex justify-content-between"><span class="stat-label">Tamil calls</span><span class="stat-icon">🇮🇳</span></div><div class="stat-value">{{ kpi['tamil'] }}</div><div class="tiny-note">{{ kpi['english'] }} in English</div></div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="fd-stat"><div class="d-flex justify-content-between"><span class="stat-label">Listings via IVR</span><span class="stat-icon">🌾</span></div><div class="stat-value">{{ kpi['listings_created'] }}</div><div class="tiny-note">{{ kpi['bulk_accepted'] }} bulk orders accepted · {{ kpi['price_requests'] }} price queries</div></div>
+    </div>
+  </div>
+
+  <div class="row g-3 mt-2">
+    <!-- language pie -->
+    <div class="col-lg-4">
+      <div class="fd-card p-3 h-100">
+        <h6 class="fw-bold mb-2"><i class="bi bi-translate me-1"></i> Tamil vs English</h6>
+        <div class="chart-box-sm"><canvas id="ch-ivr-lang"></canvas></div>
+      </div>
+    </div>
+    <!-- top intents -->
+    <div class="col-lg-4">
+      <div class="fd-card p-3 h-100">
+        <h6 class="fw-bold mb-2"><i class="bi bi-bar-chart me-1"></i> Top IVR intents</h6>
+        <div class="chart-box-sm"><canvas id="ch-ivr-intents"></canvas></div>
+      </div>
+    </div>
+    <!-- success rate -->
+    <div class="col-lg-4">
+      <div class="fd-card p-3 h-100">
+        <h6 class="fw-bold mb-2"><i class="bi bi-check2-circle me-1"></i> Successful vs failed</h6>
+        <div class="chart-box-sm"><canvas id="ch-ivr-success"></canvas></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- recent calls table -->
+  <div class="fd-card p-3 mt-3">
+    <h6 class="fw-bold mb-2"><i class="bi bi-clock-history me-1"></i> Recent calls</h6>
+    <div class="fd-table">
+      <table class="table align-middle">
+        <thead><tr><th>ID</th><th>Caller</th><th>Farmer</th><th>Language</th><th>Intent</th><th>Duration</th><th>Listings</th><th>Bulk</th><th>Success</th><th>Started</th><th></th></tr></thead>
+        <tbody>
+          {% if recent %}
+            {% for c in recent %}
+            <tr>
+              <td><b>#{{ c['id'] }}</b></td>
+              <td>+{{ c['caller_number'] }}</td>
+              <td>{{ c['farmer_name'] or '—' }}</td>
+              <td><span class="badge-fd {{ 'badge-grade-A' if c['language'] == 'ta' else 'badge-grade-B' }}">{{ 'தமிழ்' if c['language'] == 'ta' else 'English' }}</span></td>
+              <td><span class="badge-fd badge-status-pending">{{ c['intent'] or '—' }}</span></td>
+              <td>{{ c['duration_sec'] }}s</td>
+              <td>{{ c['listings_created'] }}</td>
+              <td>{{ c['bulk_accepted'] }}</td>
+              <td>
+                {% if c['success'] %}<span class="badge-fd badge-status-delivered">Success</span>
+                {% elif c['had_error'] %}<span class="badge-fd badge-status-rejected">Error</span>
+                {% else %}<span class="badge-fd badge-status-pending">Abandoned</span>{% endif %}
+              </td>
+              <td class="fd-meta">{{ c['start_time'][:16] if c['start_time'] else '—' }}</td>
+              <td><a class="btn btn-sm btn-fd-outline" href="{{ url_for('views.ivr_call_detail', call_id=c['id']) }}">View</a></td>
+            </tr>
+            {% endfor %}
+          {% else %}
+            <tr><td colspan="11" class="text-center fd-subtle py-4">No calls yet — open the <a href="{{ url_for('views.ivr_simulator') }}">IVR Simulator</a> to make your first call.</td></tr>
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+new Chart(document.getElementById('ch-ivr-lang'), {
+  type: 'doughnut',
+  data: {
+    labels: ['தமிழ்', 'English'],
+    datasets: [{ data: [{{ kpi['tamil'] }}, {{ kpi['english'] }}],
+      backgroundColor: ['#1e7d3e','#166088'] }]
+  },
+  options: { cutout: '60%', plugins: { legend: { position: 'bottom' } } }
+});
+new Chart(document.getElementById('ch-ivr-intents'), {
+  type: 'bar',
+  data: {
+    labels: [{% for t in top_intents %}'{{ t['intent'] }}',{% endfor %}],
+    datasets: [{ data: [{% for t in top_intents %}{{ t['n'] }},{% endfor %}],
+      backgroundColor: '#1e7d3e', borderRadius: 6 }]
+  },
+  options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
+});
+new Chart(document.getElementById('ch-ivr-success'), {
+  type: 'doughnut',
+  data: {
+    labels: ['Successful', 'Failed'],
+    datasets: [{ data: [{{ kpi['successful'] }}, {{ kpi['failed'] }}],
+      backgroundColor: ['#1e7d3e','#c94f3d'] }]
+  },
+  options: { cutout: '60%', plugins: { legend: { position: 'bottom' } } }
+});
+</script>
+{% endblock %}

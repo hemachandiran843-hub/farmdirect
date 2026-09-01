@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% block title %}Track {{ o['order_code'] }}{% endblock %}
+{% block content %}
+<section class="container py-4">
+  <div class="d-flex justify-content-between align-items-center flex-wrap mb-3">
+    <div>
+      <h2 class="fd-section-title mb-0" style="font-size:1.5rem"><i class="bi bi-geo me-2"></i>{{ o['order_code'] }}</h2>
+      <span class="fd-subtle">Placed {{ days_ago(o['created_at'][:10]) }} · {{ o['order_type']|title }} order · {{ o['delivery_city'] }}</span>
+    </div>
+    <span class="badge-fd badge-status-{{ o['status'] }} fs-6">{{ pretty_status(o['status']) }}</span>
+  </div>
+
+  <div class="row g-4">
+    <div class="col-lg-8">
+      <div class="fd-card p-4 mb-3">
+        <h6 class="fw-bold mb-4">Delivery progress</h6>
+        {% if o['status'] in ('rejected','cancelled') %}
+          <div class="alert alert-danger mb-0"><i class="bi bi-x-circle me-1"></i> This order was {{ pretty_status(o['status']) }}. Amount will be refunded within 3 working days (simulated).</div>
+        {% else %}
+          {% include "partials/pipeline.html" %}
+          {% if dlv %}
+          <div class="fd-divider"></div>
+          <div class="row g-3 small">
+            <div class="col-6 col-md-3"><div class="fd-meta">Driver</div><b>{{ dlv['driver_name'] }}</b></div>
+            <div class="col-6 col-md-3"><div class="fd-meta">Vehicle</div><b>{{ dlv['vehicle'] or '—' }}</b></div>
+            <div class="col-6 col-md-3"><div class="fd-meta">Distance</div><b>{{ dlv['distance_km'] }} km</b></div>
+            <div class="col-6 col-md-3"><div class="fd-meta">ETA</div><b>~{{ dlv['eta_minutes'] }} min after pickup</b></div>
+          </div>
+          {% endif %}
+        {% endif %}
+      </div>
+
+      <div class="fd-card p-4">
+        <h6 class="fw-bold mb-3">Items in this order</h6>
+        <div class="fd-table">
+          <table class="table align-middle">
+            <thead><tr><th>Produce</th><th>Farmer</th><th>Qty</th><th>Price/kg</th><th>Subtotal</th><th>Farmer status</th></tr></thead>
+            <tbody>
+              {% for i in items %}
+              <tr>
+                <td><b>{{ i['product_name'] }}</b><br><span class="fd-meta">Grade {{ i['grade'] }}</span></td>
+                <td>{{ i['seller'] }}</td>
+                <td>{{ i['quantity_kg']|kg }}</td>
+                <td>₹{{ '%g'|format(i['unit_price']) }}</td>
+                <td>₹{{ '%g'|format(i['subtotal']) }}</td>
+                <td><span class="badge-fd badge-status-{{ i['item_status'] }}">{{ pretty_status(i['item_status']) }}</span></td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-4">
+      <div class="fd-card p-4 mb-3">
+        <h6 class="fw-bold mb-3">Payment</h6>
+        {% if pay %}
+        <div class="d-flex justify-content-between small mb-1"><span class="fd-subtle">Total paid</span><b>₹{{ '%g'|format(pay['amount']) }}</b></div>
+        <div class="d-flex justify-content-between small mb-1"><span class="fd-subtle">Method</span><b>{{ pay['method'] }}</b></div>
+        <div class="d-flex justify-content-between small mb-1"><span class="fd-subtle">To farmer(s)</span><b>₹{{ '%g'|format(pay['farmer_share']) }}</b></div>
+        <div class="d-flex justify-content-between small mb-1"><span class="fd-subtle">Platform fee</span><b>₹{{ '%g'|format(pay['platform_fee']) }}</b></div>
+        <div class="d-flex justify-content-between small"><span class="fd-subtle">Status</span>
+          <span class="badge-fd {{ 'badge-status-delivered' if pay['status'] == 'completed' else 'badge-status-pending' }}">{{ pretty_status(pay['status']) }}</span></div>
+        {% endif %}
+      </div>
+      <div class="fd-card p-4" style="background:var(--fd-green-soft)">
+        <h6 class="fw-bold"><i class="bi bi-shield-check" style="color:var(--fd-green)"></i> Farm-traceable order</h6>
+        <p class="tiny-note mb-0">Every rupee in this order is split transparently: the farmer's share is shown above, FarmDirect takes a 6% platform fee, and pooled EV logistics keeps delivery at ₹{{ '%g'|format(o['delivery_fee']) }}.</p>
+      </div>
+      <a class="btn btn-fd-outline w-100 mt-3" href="{{ url_for('views.my_orders') }}"><i class="bi bi-arrow-left me-1"></i> All orders</a>
+    </div>
+  </div>
+</section>
+{% endblock %}

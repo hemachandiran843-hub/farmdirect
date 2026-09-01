@@ -1,0 +1,12 @@
+{# Delivery status pipeline — expects `status` #}
+{% set idx, total = status_steps(status) %}
+<div class="fd-pipeline">
+  {% set labels = ['Pending','Confirmed','Picked Up','In Transit','Delivered'] %}
+  {% set icons = ['clock','check2-circle','box-seam','truck','house-check'] %}
+  {% for label in labels %}
+    <div class="fd-pipe-step {% if loop.index0 < idx %}done{% elif loop.index0 == idx %}current{% endif %}">
+      <div class="fd-pipe-dot"><i class="bi bi-{{ icons[loop.index0] }}"></i></div>
+      {{ label }}
+    </div>
+  {% endfor %}
+</div>

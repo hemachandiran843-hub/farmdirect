@@ -1,0 +1,138 @@
+{% extends "base.html" %}
+{% block title %}AI Price Recommendation{% endblock %}
+{% block content %}
+<section class="container py-4">
+  <h2 class="fd-section-title mb-0" style="font-size:1.5rem">🏷️ AI Price Recommendation</h2>
+  <p class="fd-subtle">Suggested selling price from supply, predicted demand, historical prices, distance &amp; quality</p>
+
+  <form method="get" class="fd-card p-3 mt-3">
+    <div class="row g-2 align-items-end">
+      <div class="col-6 col-md-3">
+        <label class="form-label tiny-note fw-bold">CROP</label>
+        <select class="form-select" name="crop">
+          {% for c in crops %}<option value="{{ c }}" {% if c == crop %}selected{% endif %}>{{ CROP_META.get(c, {}).get('icon','🌾') }} {{ c }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="col-6 col-md-2">
+        <label class="form-label tiny-note fw-bold">GRADE</label>
+        <select class="form-select" name="grade">
+          {% for gr in ['A','B','C'] %}<option value="{{ gr }}" {% if gr == grade %}selected{% endif %}>Grade {{ gr }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="col-6 col-md-3">
+        <label class="form-label tiny-note fw-bold">QUANTITY (KG)</label>
+        <input type="number" class="form-control" name="qty" value="{{ '%g'|format(qty) }}" min="1">
+      </div>
+      <div class="col-6 col-md-2">
+        <button class="btn btn-fd w-100"><i class="bi bi-stars me-1"></i> Recommend</button>
+      </div>
+    </div>
+  </form>
+
+  <!-- Price ladder -->
+  <div class="fd-card p-4 mt-3">
+    <div class="row g-3 text-center">
+      <div class="col-md-3">
+        <div class="p-3 rounded-4 h-100" style="background:#f4f3ef">
+          <div class="stat-label">Intermediary pays today</div>
+          <div class="fw-bold" style="font-size:1.9rem;color:#8a8f8b">₹{{ '%g'|format(rec.mandi_price) }}</div>
+          <div class="tiny-note">mandi / commission agent</div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="p-3 rounded-4 h-100" style="background:var(--fd-green-light);border:2px solid var(--fd-green)">
+          <div class="stat-label">AI suggested price</div>
+          <div class="fw-bold" style="font-size:1.9rem;color:var(--fd-green-dark)">₹{{ '%g'|format(rec.suggested_price) }}</div>
+          <div class="tiny-note"><b style="color:var(--fd-green)">+{{ rec.earnings_gain_pct }}%</b> vs intermediary</div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="p-3 rounded-4 h-100" style="background:var(--fd-amber-light)">
+          <div class="stat-label">Consumer pays on FarmDirect</div>
+          <div class="fw-bold" style="font-size:1.9rem;color:#9a6b06">₹{{ '%g'|format(rec.consumer_price) }}</div>
+          <div class="tiny-note">incl. 6% fee + transport</div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="p-3 rounded-4 h-100" style="background:#f4f3ef">
+          <div class="stat-label">Traditional retail price</div>
+          <div class="fw-bold" style="font-size:1.9rem;color:#8a8f8b"><s>₹{{ '%g'|format(rec.traditional_retail) }}</s></div>
+          <div class="tiny-note">consumer saves <b style="color:var(--fd-green)">{{ rec.consumer_saving_pct }}%</b></div>
+        </div>
+      </div>
+    </div>
+    <div class="fd-divider"></div>
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
+      <div class="fw-bold">💡 On a {{ rec.quantity_kg|kg }} lot, the suggested price earns you
+        <span style="color:var(--fd-green)">{{ rec.extra_earnings_on_qty|inr }} more</span> than selling to an intermediary.</div>
+      <div class="tiny-note">Model confidence {{ (rec.factors.confidence * 100)|round(0)|int }}% · updates daily with market data</div>
+    </div>
+  </div>
+
+  <div class="row g-3 mt-1">
+    <!-- Factor breakdown -->
+    <div class="col-lg-7">
+      <div class="fd-card p-3 h-100">
+        <h6 class="fw-bold mb-2"><i class="bi bi-gear me-1"></i> How the AI computed it (transparent factors)</h6>
+        <div class="fd-table">
+          <table class="table mb-0">
+            <tbody>
+              <tr><td>Base market price (30-day avg)</td><td class="text-end fw-bold">₹{{ '%g'|format(rec.factors.base_market_price) }}/kg</td></tr>
+              <tr><td>Supply vs predicted demand ratio</td><td class="text-end fw-bold">{{ rec.factors.supply_demand_ratio }} <span class="fd-meta">({{ rec.factors.supply_demand_ratio < 1 and 'scarcity' or 'ample' }})</span></td></tr>
+              <tr><td>Predicted weekly demand</td><td class="text-end fw-bold">{{ rec.factors.predicted_weekly_demand|kg }}</td></tr>
+              <tr><td>Demand–supply factor</td><td class="text-end fw-bold">× {{ rec.factors.demand_factor }}</td></tr>
+              <tr><td>90-day price momentum</td><td class="text-end fw-bold">× {{ rec.factors.momentum }} <span class="fd-meta">({{ rec.factors.price_trend_90d_pct > 0 and '+' or '' }}{{ rec.factors.price_trend_90d_pct }}%/mo)</span></td></tr>
+              <tr><td>Quality grade {{ rec.grade }}</td><td class="text-end fw-bold">× {{ rec.factors.quality_factor }}</td></tr>
+              <tr><td>Volume factor ({{ rec.quantity_kg|kg }})</td><td class="text-end fw-bold">× {{ rec.factors.volume_factor }}</td></tr>
+              <tr><td>Distance to demand hub — {{ rec.factors.hub_distance_km }} km</td><td class="text-end fw-bold">₹{{ '%g'|format(rec.factors.transport_cost_per_kg) }}/kg transport</td></tr>
+              <tr style="background:var(--fd-green-soft)"><td class="fw-bold">Final suggested price</td><td class="text-end fw-bold" style="color:var(--fd-green-dark)">₹{{ '%g'|format(rec.suggested_price) }}/kg</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Visual + my products -->
+    <div class="col-lg-5">
+      <div class="fd-card p-3 mb-3">
+        <h6 class="fw-bold mb-2">Price comparison (₹/kg)</h6>
+        <div class="chart-box-sm"><canvas id="priceChart"></canvas></div>
+      </div>
+      {% if my_products %}
+      <div class="fd-card p-3">
+        <h6 class="fw-bold mb-2"><i class="bi bi-box-seam me-1"></i> Check my listings</h6>
+        {% for p in my_products %}
+        <div class="d-flex justify-content-between align-items-center border-bottom py-2 small">
+          <span>{{ CROP_META.get(p['crop'], {}).get('icon','🌾') }} {{ p['name'] }} <span class="fd-meta">({{ p['grade'] }})</span></span>
+          <span>
+            <b>₹{{ '%g'|format(p['price_per_kg']) }}</b>
+            {% if p['price_per_kg'] < rec.factors.base_market_price * 0.95 %}
+              <span class="badge-fd badge-status-rejected" style="font-size:.65rem">below market</span>
+            {% elif p['price_per_kg'] > rec.factors.base_market_price * 1.25 %}
+              <span class="badge-fd badge-status-pending" style="font-size:.65rem">premium</span>
+            {% else %}
+              <span class="badge-fd badge-status-delivered" style="font-size:.65rem">fair</span>
+            {% endif %}
+          </span>
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</section>
+{% endblock %}
+{% block scripts %}
+<script>
+new Chart(document.getElementById('priceChart'), {
+  type: 'bar',
+  data: {
+    labels: ['Intermediary', 'FarmDirect', 'Consumer (here)', 'Consumer (retail)'],
+    datasets: [{ data: [{{ rec.mandi_price }}, {{ rec.suggested_price }}, {{ rec.consumer_price }}, {{ rec.traditional_retail }}],
+      backgroundColor: ['#b9c2bc', '#1e7d3e', '#e8a013', '#d3d8d4'], borderRadius: 6 }]
+  },
+  options: { plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => '₹' + c.raw + '/kg' } } },
+             scales: { y: { beginAtZero: true, ticks: { callback: v => '₹' + v } } } }
+});
+</script>
+{% endblock %}

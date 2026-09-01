@@ -1,0 +1,146 @@
+{% extends "base.html" %}
+{% block title %}Bulk Buyer Dashboard{% endblock %}
+{% block content %}
+<section class="container py-4">
+  <h2 class="fd-section-title mb-0" style="font-size:1.5rem">🏢 {{ g.user['name'] }}</h2>
+  <p class="fd-subtle">Bulk marketplace · request quotations · compare suppliers</p>
+
+  <div class="row g-3 mb-1">
+    <div class="col-6 col-md-3">
+      <div class="fd-stat"><div class="d-flex justify-content-between"><span class="stat-label">Bulk orders</span><span class="stat-icon">📦</span></div><div class="stat-value">{{ kpi['n_orders'] }}</div></div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="fd-stat"><div class="d-flex justify-content-between"><span class="stat-label">Total procured</span><span class="stat-icon">💰</span></div><div class="stat-value">{{ kpi['spent']|inr }}</div></div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="fd-stat"><div class="d-flex justify-content-between"><span class="stat-label">Open quotes</span><span class="stat-icon">📨</span></div><div class="stat-value stat-amber">{{ quote_data|selectattr('q.status', 'equalto', 'open')|list|length }}</div></div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="fd-stat"><div class="d-flex justify-content-between"><span class="stat-label">Savings vs mandi</span><span class="stat-icon">📉</span></div><div class="stat-value" style="color:var(--fd-green)">~12%</div><div class="tiny-note">direct FPO pricing</div></div>
+    </div>
+  </div>
+
+  <div class="row g-3 mt-2">
+    <!-- Request a quote -->
+    <div class="col-lg-4">
+      <div class="fd-card p-3 h-100">
+        <h6 class="fw-bold mb-2"><i class="bi bi-envelope-paper me-1"></i> Request a quotation</h6>
+        <div class="mb-2">
+          <label class="form-label tiny-note fw-bold">CROP</label>
+          <select class="form-select" id="q-crop">
+            {% for c in ['Tomato','Onion','Potato','Rice','Banana','Mango','Carrot','Wheat','Green Chili'] %}
+            <option value="{{ c }}">{{ CROP_META.get(c, {}).get('icon','🌾') }} {{ c }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="row g-2 mb-2">
+          <div class="col-6">
+            <label class="form-label tiny-note fw-bold">QUANTITY (KG)</label>
+            <input type="number" class="form-control" id="q-qty" value="1000" min="100" step="100">
+          </div>
+          <div class="col-6">
+            <label class="form-label tiny-note fw-bold">GRADE</label>
+            <select class="form-select" id="q-grade"><option>A</option><option selected>B</option><option>C</option></select>
+          </div>
+        </div>
+        <div class="mb-3">
+          <label class="form-label tiny-note fw-bold">DELIVER TO CITY</label>
+          <select class="form-select" id="q-city">
+            {% for c in ['Mumbai','Pune','Nashik','Nagpur'] %}<option {% if g.user['city'] == c %}selected{% endif %}>{{ c }}</option>{% endfor %}
+          </select>
+        </div>
+        <button class="btn btn-fd w-100" onclick="requestQuote()"><i class="bi bi-send me-1"></i> Get quotes from suppliers</button>
+        <p class="tiny-note mt-2 mb-0">The AI matches verified suppliers and returns price + delivery-time offers to compare.</p>
+      </div>
+    </div>
+
+    <!-- Quotes -->
+    <div class="col-lg-8">
+      <div class="fd-card p-3 h-100">
+        <h6 class="fw-bold mb-2"><i class="bi bi-clipboard-check me-1"></i> My quotations &amp; supplier comparison</h6>
+        {% if quote_data %}
+          {% for qd in quote_data %}
+          <div class="border rounded-3 p-3 mb-3">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+              <b>{{ CROP_META.get(qd.q['crop'], {}).get('icon','🌾') }} {{ qd.q['crop'] }} — {{ qd.q['quantity_kg']|kg }} (Grade {{ qd.q['grade'] }}) → {{ qd.q['city'] }}</b>
+              <span class="badge-fd {{ 'badge-status-pending' if qd.q['status'] == 'open' else 'badge-status-delivered' }}">{{ qd.q['status']|title }}</span>
+            </div>
+            {% if qd.responses %}
+            <div class="table-responsive">
+              <table class="table table-sm align-middle mb-0">
+                <thead><tr><th>Supplier</th><th>Location</th><th>Price/kg</th><th class="text-end">Total</th><th>ETA</th><th></th></tr></thead>
+                <tbody>
+                  {% for r in qd.responses %}
+                  <tr class="{{ 'table-success' if loop.first and qd.q['status'] == 'open' }}">
+                    <td><b>{{ r['seller'] }}</b>{% if r['seller_role'] == 'fpo' %} <span class="badge-fd badge-grade-A" style="font-size:.6rem">FPO</span>{% endif %}</td>
+                    <td class="small">{{ r['city'] }}</td>
+                    <td><b>₹{{ '%g'|format(r['price_per_kg']) }}</b> {% if loop.first %}<span class="badge-fd badge-status-delivered" style="font-size:.6rem">best</span>{% endif %}</td>
+                    <td class="text-end">₹{{ '%g'|format(r['total_amount']) }}</td>
+                    <td class="small">{{ r['eta_days'] }} day(s)</td>
+                    <td class="text-end">
+                      {% if qd.q['status'] == 'open' and r['status'] == 'pending' %}
+                      <button class="btn btn-fd btn-sm" onclick="acceptQuote({{ qd.q['id'] }}, {{ r['id'] }})">Accept</button>
+                      {% else %}
+                      <span class="badge-fd {{ 'badge-status-delivered' if r['status'] == 'accepted' else 'badge-status-pending' }}">{{ r['status']|title }}</span>
+                      {% endif %}
+                    </td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+            {% else %}
+            <p class="fd-subtle small mb-0">Waiting for supplier responses…</p>
+            {% endif %}
+          </div>
+          {% endfor %}
+        {% else %}
+        <div class="text-center py-4"><div style="font-size:2rem">📨</div><p class="fd-subtle mb-0">No quotations yet — request one on the left.</p></div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Bulk listings -->
+  <div class="fd-card p-3 mt-3">
+    <h6 class="fw-bold mb-2"><i class="bi bi-boxes me-1"></i> Large-quantity listings (500 kg+)</h6>
+    <div class="fd-table">
+      <table class="table align-middle">
+        <thead><tr><th>Crop / Listing</th><th>Supplier</th><th>Grade</th><th>Available</th><th>Price/kg</th><th>Est. delivery</th><th></th></tr></thead>
+        <tbody>
+          {% for p in bulk_products %}
+          <tr>
+            <td><b>{{ CROP_META.get(p['crop'], {}).get('icon','🌾') }} {{ p['name'] }}</b></td>
+            <td class="small">{{ p['seller_name'] }}{% if p['seller_role'] == 'fpo' %} · FPO{% endif %}<br><span class="fd-meta"><i class="bi bi-geo-alt"></i> {{ p['city'] }}</span></td>
+            <td><span class="badge-fd badge-grade-{{ p['grade'] }}">{{ p['grade'] }}</span></td>
+            <td>{{ p['quantity_kg']|kg }}</td>
+            <td class="fw-bold">₹{{ '%g'|format(p['price_per_kg']) }}</td>
+            <td class="small">{{ 'Same day' if p['city'] in ('Nashik','Pune','Mumbai','Nagpur') else '2–3 days' }}</td>
+            <td class="text-end"><a class="btn btn-fd-outline btn-sm" href="{{ url_for('views.product_detail', pid=p['id']) }}">View</a></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Recent bulk orders -->
+  <div class="fd-card p-3 mt-3">
+    <h6 class="fw-bold mb-2"><i class="bi bi-clock-history me-1"></i> Recent bulk orders</h6>
+    <div class="row g-2">
+      {% for o in orders %}
+      <div class="col-md-4">
+        <div class="border rounded-3 p-2 d-flex justify-content-between align-items-center">
+          <div class="small"><b>{{ o['order_code'] }}</b><br><span class="fd-meta">{{ o['n_items'] }} line(s) · {{ days_ago(o['created_at'][:10]) }}</span></div>
+          <div class="text-end">
+            <span class="badge-fd badge-status-{{ o['status'] }}">{{ pretty_status(o['status']) }}</span>
+            <div class="fw-bold small mt-1">₹{{ '%g'|format(o['total_amount']) }}</div>
+          </div>
+          <a href="{{ url_for('views.track_order', oid=o['id']) }}" class="btn btn-fd-outline btn-sm">Track</a>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+{% endblock %}

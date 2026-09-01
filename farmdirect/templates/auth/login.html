@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}Login{% endblock %}
+{% block content %}
+<div class="fd-auth-wrap">
+  <div class="fd-card p-4 p-md-5">
+    <div class="text-center mb-4">
+      <div style="font-size:2.4rem">🌱</div>
+      <h3 class="fw-bold mb-1">Welcome back</h3>
+      <p class="fd-subtle">Sign in to your FarmDirect account</p>
+    </div>
+    <form method="post" action="{{ url_for('auth.login', next=request.args.get('next')) }}">
+      <div class="mb-3">
+        <label class="form-label">Email</label>
+        <input type="email" class="form-control" name="email" placeholder="you@example.in" required autofocus>
+      </div>
+      <div class="mb-3">
+        <label class="form-label">Password</label>
+        <input type="password" class="form-control" name="password" placeholder="••••••••" required>
+      </div>
+      <button class="btn btn-fd w-100 py-2 mt-1"><i class="bi bi-box-arrow-in-right me-1"></i> Login</button>
+    </form>
+    <p class="text-center fd-subtle mt-3 mb-0">New to FarmDirect? <a href="{{ url_for('auth.register') }}"><b>Create an account</b></a></p>
+  </div>
+
+  <div class="fd-card p-3 mt-3">
+    <p class="tiny-note fw-bold mb-2 text-center"><i class="bi bi-lightning-charge-fill text-warning"></i> DEMO LOGINS — tap to autofill (hackathon judging)</p>
+    <div class="row g-2">
+      <div class="col-6"><button class="btn btn-fd-outline w-100 demo-cred text-start" onclick="fillDemo('vikram@farmdirect.in','farm123')"><i class="bi bi-flower1"></i> Farmer<small class="d-block fd-meta">vikram@farmdirect.in</small></button></div>
+      <div class="col-6"><button class="btn btn-fd-outline w-100 demo-cred text-start" onclick="fillDemo('fpo@farmdirect.in','farm123')"><i class="bi bi-people"></i> FPO<small class="d-block fd-meta">fpo@farmdirect.in</small></button></div>
+      <div class="col-6"><button class="btn btn-fd-outline w-100 demo-cred text-start" onclick="fillDemo('priya@example.in','farm123')"><i class="bi bi-basket"></i> Consumer<small class="d-block fd-meta">priya@example.in</small></button></div>
+      <div class="col-6"><button class="btn btn-fd-outline w-100 demo-cred text-start" onclick="fillDemo('buy@annapurna.in','farm123')"><i class="bi bi-building"></i> Bulk Buyer<small class="d-block fd-meta">buy@annapurna.in</small></button></div>
+      <div class="col-12"><button class="btn btn-fd-outline w-100 demo-cred text-start" onclick="fillDemo('admin@farmdirect.in','admin123')"><i class="bi bi-shield-lock"></i> Admin &amp; Logistics<small class="d-block fd-meta">admin@farmdirect.in</small></button></div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+function fillDemo(email, pw) {
+  document.querySelector('input[name=email]').value = email;
+  document.querySelector('input[name=password]').value = pw;
+}
+</script>
+{% endblock %}

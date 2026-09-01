@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+{% block title %}{{ p['name'] }}{% endblock %}
+{% set meta = CROP_META.get(p['crop'], {'icon':'🌾','grad':'linear-gradient(135deg,#d5e8d8,#a8cbae)'}) %}
+{% block content %}
+<section class="container py-4">
+  <nav style="--bs-breadcrumb-divider:'→'">
+    <ol class="breadcrumb small">
+      <li class="breadcrumb-item"><a href="{{ url_for('views.landing') }}">Home</a></li>
+      <li class="breadcrumb-item"><a href="{{ url_for('views.marketplace') }}">Marketplace</a></li>
+      <li class="breadcrumb-item active">{{ p['crop'] }}</li>
+    </ol>
+  </nav>
+
+  <div class="row g-4">
+    <div class="col-lg-6">
+      <div class="fd-card p-3">
+        <div class="fd-product-img rounded-3" style="background:{{ meta.grad }};height:300px;font-size:7rem">{{ meta.icon }}</div>
+        <div class="d-flex gap-2 mt-3">
+          <span class="badge-fd badge-grade-{{ p['grade'] }}">Grade {{ p['grade'] }}</span>
+          {% if p['organic'] %}<span class="badge-fd" style="background:var(--fd-green-light);color:var(--fd-green-dark)">🌿 Organic</span>{% endif %}
+          <span class="badge-fd" style="background:#e7f3fb;color:#166088"><i class="bi bi-truck"></i> Same / Next-day delivery</span>
+          <span class="badge-fd" style="background:var(--fd-amber-light);color:#9a6b06">Harvested {{ days_ago(p['harvest_date']) }}</span>
+        </div>
+      </div>
+
+      <!-- Seller card -->
+      <div class="fd-card p-3 mt-3">
+        <div class="d-flex align-items-center gap-3">
+          <div class="avatar-crop" style="background:var(--fd-green-light)">{{ '👥' if p['seller_role'] == 'fpo' else '👨‍🌾' }}</div>
+          <div class="flex-grow-1">
+            <h6 class="fw-bold mb-0">{{ p['org_name'] or p['seller_name'] }}</h6>
+            <div class="fd-meta">
+              {% if p['seller_role'] == 'fpo' %}FPO · {{ p['member_count'] }} member farmers{% else %}Individual farmer{% if p['farm_size_acres'] %} · {{ p['farm_size_acres'] }} acres{% endif %}{% endif %}
+              · <i class="bi bi-geo-alt"></i> {{ p['city'] }}, {{ p['state'] }}
+            </div>
+          </div>
+          <div class="text-center">
+            <div class="fw-bold" style="color:var(--fd-amber)">★ {{ p['rating'] }}</div>
+            <div class="tiny-note">verified ✓</div>
+          </div>
+        </div>
+        {% if p['bio'] %}<p class="fd-subtle small mt-2 mb-0">{{ p['bio'] }}</p>{% endif %}
+      </div>
+    </div>
+
+    <div class="col-lg-6">
+      <h2 class="fw-bold">{{ p['name'] }}</h2>
+      <div class="d-flex align-items-baseline gap-2 my-2">
+        <span class="fd-price" style="font-size:2rem">₹{{ '%g'|format(p['price_per_kg']) }}</span><span class="fd-subtle">/ kg</span>
+        <span class="fd-meta">≈ ₹{{ '%g'|format(rec.suggested_price * 0.9) }}–₹{{ '%g'|format(rec.suggested_price * 1.1) }} fair range</span>
+      </div>
+      <p class="fd-subtle">{{ p['description'] or 'Freshly harvested and graded at the farm. Packed for cold-chain transport.' }}</p>
+
+      <div class="row g-2 my-3">
+        <div class="col-6 col-md-3"><div class="fd-stat"><div class="stat-label">Available</div><div class="stat-value">{{ p['quantity_kg']|kg }}</div></div></div>
+        <div class="col-6 col-md-3"><div class="fd-stat"><div class="stat-label">Grade</div><div class="stat-value">{{ p['grade'] }}</div></div></div>
+        <div class="col-6 col-md-3"><div class="fd-stat"><div class="stat-label">Min order</div><div class="stat-value">1 kg</div></div></div>
+        <div class="col-6 col-md-3"><div class="fd-stat"><div class="stat-label">ETA</div><div class="stat-value" style="font-size:1.05rem">Same/Next day</div></div></div>
+      </div>
+
+      {% if g.role in (None, 'consumer') %}
+      <div class="fd-card p-3">
+        <div class="d-flex gap-2 align-items-end">
+          <div>
+            <label class="form-label tiny-note fw-bold mb-1">QUANTITY (KG)</label>
+            <input type="number" id="qty-{{ p['id'] }}" class="form-control" style="width:110px" value="2" min="0.5" step="0.5" max="{{ p['quantity_kg'] }}">
+          </div>
+          <button class="btn btn-fd flex-fill" onclick="addToCart({{ p['id'] }}, parseFloat(document.getElementById('qty-{{ p['id'] }}').value)||1)">
+            <i class="bi bi-cart-plus me-1"></i> Add to Cart
+          </button>
+          <button class="btn btn-amber flex-fill" onclick="addToCart({{ p['id'] }}, parseFloat(document.getElementById('qty-{{ p['id'] }}').value)||1).then(()=>{ setTimeout(()=>window.location.href='{{ url_for("views.cart") }}',600) })">
+            <i class="bi bi-lightning-charge me-1"></i> Buy Now
+          </button>
+        </div>
+        <p class="tiny-note mb-0 mt-2"><i class="bi bi-shield-check" style="color:var(--fd-green)"></i> Payment held securely until pickup · Farmer receives {{ '85' }}% of item value</p>
+      </div>
+      {% else %}
+      <div class="fd-card p-3 fd-subtle">
+        <i class="bi bi-info-circle me-1"></i> You are logged in as <b>{{ g.role }}</b>. Log in as a consumer to purchase retail quantities.
+      </div>
+      {% endif %}
+
+      <!-- AI price insight -->
+      <div class="fd-card p-3 mt-3" style="border-left:4px solid var(--fd-amber)">
+        <h6 class="fw-bold mb-2"><i class="bi bi-stars text-warning"></i> AI Price Insight</h6>
+        <div class="row text-center small">
+          <div class="col-4"><div class="fw-bold">₹{{ '%g'|format(rec.mandi_price) }}</div><div class="fd-meta">Intermediary pays</div></div>
+          <div class="col-4"><div class="fw-bold" style="color:var(--fd-green)">₹{{ '%g'|format(rec.suggested_price) }}</div><div class="fd-meta">FarmDirect fair price</div></div>
+          <div class="col-4"><div class="fw-bold">₹{{ '%g'|format(rec.traditional_retail) }}</div><div class="fd-meta">Traditional retail</div></div>
+        </div>
+        <p class="tiny-note mb-0 mt-2">Farmer earns <b>+{{ rec.earnings_gain_pct }}%</b> selling here; you pay ≈ ₹{{ '%g'|format(rec.consumer_price) }}/kg — <b>{{ rec.consumer_saving_pct }}% below</b> traditional retail. Demand trend: <b>{{ rec.factors.demand_factor > 1 and 'strong' or 'normal' }}</b> · model confidence {{ (rec.factors.confidence * 100)|round(0)|int }}%.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Similar produce -->
+  {% if similar %}
+  <h5 class="fw-bold mt-5 mb-3">More {{ p['crop'] }} listings</h5>
+  <div class="row g-3">
+    {% for p in similar %}
+      {% include "partials/product_card.html" %}
+    {% endfor %}
+  </div>
+  {% endif %}
+</section>
+{% endblock %}

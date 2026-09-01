@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block title %}Checkout{% endblock %}
+{% block content %}
+<section class="container py-4">
+  <h2 class="fd-section-title" style="font-size:1.5rem"><i class="bi bi-truck me-2"></i>Checkout</h2>
+  <p class="fd-subtle">Confirm delivery details — your farmer gets notified instantly</p>
+
+  <form method="post">
+    <div class="row g-4">
+      <div class="col-lg-7">
+        <div class="fd-card p-4 mb-3">
+          <h6 class="fw-bold mb-3"><i class="bi bi-geo-alt me-1"></i>Delivery location</h6>
+          <div class="mb-3">
+            <label class="form-label">Full address</label>
+            <textarea class="form-control" name="address" rows="2" placeholder="House no, street, area…" required>{{ user['name'] }}, {{ user['city'] }}</textarea>
+          </div>
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label class="form-label">City</label>
+              <input class="form-control" name="city" value="{{ user['city'] }}" required>
+            </div>
+            <div class="col-md-6 mb-3">
+              <label class="form-label">PIN code</label>
+              <input class="form-control" name="pincode" value="422005" pattern="[0-9]{6}" required>
+            </div>
+          </div>
+          <div>
+            <label class="form-label">Payment method</label>
+            <div class="d-flex flex-wrap gap-2">
+              {% for val, icon, label in [('UPI','bi-phone','UPI'),('Card','bi-credit-card','Card'),('Cash on Delivery','bi-cash','Cash on Delivery')] %}
+              <input type="radio" class="btn-check" name="pay_method" id="pm-{{ loop.index }}" value="{{ val }}" {% if loop.first %}checked{% endif %}>
+              <label class="btn btn-fd-outline" for="pm-{{ loop.index }}"><i class="bi {{ icon }} me-1"></i>{{ label }}</label>
+              {% endfor %}
+            </div>
+            <p class="tiny-note mt-2 mb-0"><i class="bi bi-shield-lock"></i> Prototype: payments are simulated — farmer payment is secured on pickup.</p>
+          </div>
+        </div>
+      </div>
+      <div class="col-lg-5">
+        <div class="fd-card p-4">
+          <h6 class="fw-bold mb-3">Order items</h6>
+          {% for i in items %}
+          <div class="d-flex justify-content-between small mb-2">
+            <span>{{ i['name'] }} × {{ '%g'|format(i['quantity_kg']) }}kg</span><b>₹{{ '%g'|format(i['price_per_kg'] * i['quantity_kg']) }}</b>
+          </div>
+          {% endfor %}
+          <div class="fd-divider"></div>
+          <div class="d-flex justify-content-between small mb-2"><span class="fd-subtle">Subtotal</span><b>₹{{ '%g'|format(subtotal) }}</b></div>
+          <div class="d-flex justify-content-between small mb-2"><span class="fd-subtle">Platform fee (6%)</span><b>₹{{ '%g'|format(platform_fee) }}</b></div>
+          <div class="d-flex justify-content-between small mb-2"><span class="fd-subtle">Delivery</span><b>₹{{ '%g'|format(delivery_fee) }}</b></div>
+          <div class="fd-divider"></div>
+          <div class="d-flex justify-content-between mb-3"><span class="fw-bold">Total</span><span class="fd-price" style="font-size:1.4rem">₹{{ '%g'|format(total) }}</span></div>
+          <button class="btn btn-fd w-100 py-2"><i class="bi bi-check2-circle me-1"></i> Place Order</button>
+          <p class="tiny-note text-center mt-2 mb-0">Estimated delivery: <b>Same day / next morning</b> by FarmDirect EV vans</p>
+        </div>
+      </div>
+    </div>
+  </form>
+</section>
+{% endblock %}
